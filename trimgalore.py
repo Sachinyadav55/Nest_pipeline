@@ -6,61 +6,93 @@ import logging
 import datetime
 import argparse
 import subprocess
-import config as cf
+import configparser
 from time import gmtime, strftime
 
-def run_qc():
-    '''Trim galore is a wrapper around fastqc and cutadapt, written to perform 
+logger = logging.getLogger('Nest - FastqFilter')
+logger.setLevel(logging.DEBUG)
+stream = logging.StreamHandler()
+stream.setLevel(logging.DEBUG)
+formats = logging.Formatter('%(asctime)s;%(name)s;%(levelname)s;%(message)s')
+stream.setFormatter(formats)
+logger.addHandler(stream)
+
+def run_qc(fwd, rev, outdir, base):
+    '''Run FastQC and Trimmomatic, written to perform 
     quality trimming in FASTQ files. In the current implementation of this module
     arguments are directly read from the config. Parameters are set to default.
     And can be changed by editing the config file, or by running the pipeline with
     the autoconfig script. This module is a part of the NEST pipeline, developed
     by Shashidhar Ravishankar, at the Vannberg Lab, Georgia Institute of Technolgy.'''
     logger.info('Running TrimGalore')
-    read1 = cf.read1
-    read2 = cf.read2
-    if cf.read2 == None:        #Single end analysis
-        fastqc_args = [ '--fastqc_args', '"', '-o', cf.outdir, '-t', cf.threads, '-f', 'fastq', 
-                '-j', cf.java, '-k', cf.fqc_kmer,'"']
-        adapter = open(cf.adapters).readline().strip('\n')
-        trim_args = [cf.trim,  cf.qual_form, '-q', cf.qual, '--fastqc']+ fastqc_args + ['-a',adapter, 
-                '-e', cf.errorrate, '--stringency', cf.stringency, '--length', cf.length,
-                '-o', cf.outdir, '--clip_R1', cf.fiveclip, '--three_prime_clip_R1', cf.threeclip, cf.read1]
+    config = configparser.ConfigParser()
+    config.read('config.cfg')
+    read1 = fwd
+    read2 = rev
+    fastqc_path = config['FastQC']['fastqc']
+    kmer = config['FastQC']['kmer']
+    fastqc_dir = outdir + '/fastqc'
+    adapters = config['Trimmomatic']['illuminaclip']
+    minlen = config['Trimmomatic']['minlen']
+    window = config['Trimmomatic']['window']
+    leading = config['Trimmomatic']['leading']
+    headcrop = config['Trimmomatic']['headcrop']
+    crop = config['Trimmomatic']['crop']
+    trim_path = config['Trimmomatic']['trimmomatic']
+    trailing = config['Trimmomatic']['trailing']
+    java = config['General']['java']
+    if not os.path.exists(fastqc_dir):
+        os.mkdir(fastqc_dir)
+    if read2 == None:        #Single end analysis
+        output = outdir + '/' + base + '_trimmed.fq.gz'
+        fastqc_args = [ fastqc, '--extract', '-o', fastqc_dir, '-f', 'fastq', read1]
+        trim_args = [java, '-jar', trim_path, 'SE', '-phred33', read1, output, 
+                    'ILLUMINACLIP:{0}:2:30:10'.format(adapters), 'LEADING:{0}'.format(leading), 
+                    'TRAILING:.{0}'.format(trailing), 'SLIDINGWINDOW:{0}'.format(window), 
+                    'MINLEN:{0}'.format(minlen)]
         try:
-            run_trim = subprocess.check_call(' '.join(trim_args), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+            run_fastqc  =  subprocess.check_call(' '.join(fastqc_args), stdout=subprocess.PIPE, 
+                                                stderr=subprocess.PIPE, shell=True)
+            logger.info('Fastq quality reports created')
+        except subprocess.CalledProcessError as ret:
+            logger.info('FastQC fail with return code: {0}'.format(ret.returncode))
+            sys.exit()
+        try:
+            run_trim = subprocess.check_call(' '.join(trim_args), stdout=subprocess.PIPE, 
+                                            stderr=subprocess.PIPE, shell=True)
             logger.info('Fastq trimming completed successfully')
         except subprocess.CalledProcessError as ret:
-            logger.info('TrimGalore failed with return code: ' + str(ret.returncode))
+            logger.info('Trimmomatic failed with return code: {0}'.format(ret.returncode))
             sys.exit()
-        base = os.path.splitext(cf.read1)[0]
-        cf.read1 = base + '_trimmed.fq'
-
+        read1 = output
     else :      #Paired end analysis
-        fastqc_args = [ '--fastqc_args', '"', '-o', cf.outdir, '-t', cf.threads, '-f', 'fastq', 
-                '-j', cf.java, '-k', cf.fqc_kmer,'"']
-        adapter = open(cf.adapters).readline().strip('\n')
-        trim_args = [cf.trim,  cf.qual_form, '-q', cf.qual, '--fastqc']+ fastqc_args + ['-a',adapter, 
-                '-a2', adapter, '-e', cf.errorrate, '--stringency', cf.stringency, '--length', cf.length,
-                '-o', cf.outdir, '--clip_R1', cf.fiveclip, '--clip_R2', cf.fiveclip, '--three_prime_clip_R1', 
-                cf.threeclip, '--three_prime_clip_R2', cf.threeclip, '--paired', cf.read1, cf.read2]
+        output_fwd = outdir + '/' +base + '_r1_trimmed.fq.gz'
+        output_rev = outdir + '/' + base + '_r2_trimmed.fq.gz'
+        trash_fwd = outdir + '/' + base + '_r1_unpaired.fq.gz'
+        trash_rev = outdir + '/' + base + '_r2_unpaired.fq.gz'
+        fastqc_args = [fastqc_path, '--extract', '-o', fastqc_dir, '-f', 'fastq', read1, read2]
+        trim_args = [java, '-jar', trim_path, 'PE', '-phred33', read1, read2, output_fwd, 
+                    trash_fwd, output_rev, trash_rev, 'ILLUMINACLIP:{0}:2:30:10'.format(adapters), 
+                    'LEADING:{0}'.format(leading), 'TRAILING:{0}'.format(trailing), 
+                    'SLIDINGWINDOW:{0}'.format(window), 'MINLEN:{0}'.format(minlen)]
         try:
-            run_trim = subprocess.check_call(' '.join(trim_args), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+            run_fastqc = subprocess.check_call(' '.join(fastqc_args), stdout=subprocess.PIPE, 
+                                                stderr=subprocess.PIPE, shell=True)
+            logger.info('Fastq quality reports created')
+        except subprocess.CalledProcessError as ret:
+            logger.info('FastQC failed with return code: {0}'.format(ret.returncode))
+            sys.exit()
+        try:
+            run_trim = subprocess.check_call(' '.join(trim_args), stdout=subprocess.PIPE, 
+                                            stderr=subprocess.PIPE, shell=True)
             logger.info('Fastq trimming completed successfully')
         except subprocess.CalledProcessError as ret:
-            logger.info('TrimGalore failed with return code: '+ str(ret.returncode))
+            logger.info('Trimmomatic failed with return code: '+ str(ret.returncode))
             sys.exit()
-        base = os.path.splitext(cf.read1)[0]
-        read1  = base + '_trimmed.fq'
-        base = os.path.splitext(cf.read2)[0]
-        read2 = base + '_trimmed.fq'
+        read1 = output_fwd
+        read2 = output_rev
     return (read1,read2)
 
 if __name__ == '__main__':
-     logger = logging.getLogger('Nest - FastqFilter')
-     logger.setLevel(logging.DEBUG)
-     stream = logging.StreamHandler()
-     stream.setLevel(logging.DEBUG)
-     formats = logging.Formatter('%(asctime)s;%(name)s;%(levelname)s;%(message)s')
-     stream.setFormatter(formats)
-     logger.addHandler(stream)
-     ret = run_qc()
+    #update unit test
+    ret = run_qc(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
