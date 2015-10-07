@@ -235,8 +235,6 @@ if __name__ == '__main__' :
         input_dict[base].append(lines)
     fwd = list()
     rev = list()
-    print(input_files)
-    print(input_dict)
     for lines in input_dict:
         if read.search(input_dict[lines][0]):
             fwd.append(input_dict[lines][0])
@@ -260,5 +258,4 @@ if __name__ == '__main__' :
             args.greedy, args.maxreads,args.maxinmem, args.covariantes,
             args.knownSites, args.ics, args.maxcyc, args.mcs, args.bqsrgpen,args.ddq,
             args.idq, args.calconf,args.emitconf,args.gtmode)
-    #configure()
     main()
