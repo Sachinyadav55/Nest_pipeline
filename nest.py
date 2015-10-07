@@ -127,7 +127,7 @@ def configure(fwd,rev,outdir,threads,java,mem,reference,kmer,adap,window,
                         'gbar': gbar, 'matbonus': matbonus, 'penrange': penrange, 
                         'ambpen': ambpen, 'gappen': gappen, 'refgappen': refgappen, 
                         'maplim': maplim, 'minins': minins, 'maxins': maxins, 'orient': '--'+orient}
-    picard = '{0}/picard/picard.jar'.format(project)
+    picard = '{0}/picard-tools-1.139/picard.jar'.format(project)
     config['Picard'] = {'picard': picard, 'rgid':rgid, 'rglb': rglb, 'rgpl': rgpl, 
                         'rgpu' : rgpu, 'rgsm': rgsm, 'rgcn': rgcn, 'rgds': rgds, 'rgdt':rgdt,
                         'rgpi' : rgpi, 'rgpg' : rgpg, 'rgpm': rgpm, 'dup': dup, 
