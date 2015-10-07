@@ -24,7 +24,7 @@ def run_qc(fwd, rev, outdir, base):
     And can be changed by editing the config file, or by running the pipeline with
     the autoconfig script. This module is a part of the NEST pipeline, developed
     by Shashidhar Ravishankar, at the Vannberg Lab, Georgia Institute of Technolgy.'''
-    logger.info('Running TrimGalore')
+    logger.info('Running Trimmomatic')
     config = configparser.ConfigParser()
     config.read('config.cfg')
     read1 = fwd
