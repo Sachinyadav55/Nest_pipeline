@@ -197,7 +197,7 @@ if __name__ == '__main__' :
     nester.add_argument('--minreads', type=str, default='4', help='minreads')
     nester.add_argument('--mismatches', type=str, default='0.0', help='mismatches')
     nester.add_argument('--windows', type=str, default='10', help='windows')
-    nester.add_argument('--known', type=str, default='null', help='known indels')
+    nester.add_argument('--known', type=str, nargs='+', default='null', help='known indels')
     nester.add_argument('--model', type=str, default='USE_READS', help='model')
     nester.add_argument('--lod', type=str, default='5.0', help='lod')
     nester.add_argument('--entropy', type=str, default='0.15', help='entropy')
@@ -243,6 +243,8 @@ if __name__ == '__main__' :
             rev.append(input_dict[lines][1])
     if args.rgdt == 'null':
             args.rgdt = time.strftime('%Y-%m-%d')
+    args.known = ','.join(args.known)
+    args.knownSites = ','.join(args.knownSites) 
     configure(fwd,rev,args.outdir,args.thread,args.java,args.mem,args.reference,
             args.fastqckmer, args.adapters, args.window, args.cropl, args.cropt, 
             args.headcrop, args.headcrop, args.minlen, args.mode, args.mismatch,
@@ -257,4 +259,4 @@ if __name__ == '__main__' :
             args.greedy, args.maxreads,args.maxinmem, args.covariantes,
             args.knownSites, args.ics, args.maxcyc, args.mcs, args.bqsrgpen,args.ddq,
             args.idq, args.calconf,args.emitconf,args.gtmode)
-    main()
+    #main()
