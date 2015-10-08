@@ -6,7 +6,6 @@ import glob
 import gatk
 import time
 import bowtie
-import config
 import picard
 import logging
 import argparse
