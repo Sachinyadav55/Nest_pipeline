@@ -42,15 +42,17 @@ def addreadgroup(samfile,base):
         rgsm = base
     logger.info('Adding read group info')
     bamfile = os.path.splitext(samfile)[0] + '_RG.bam'
-    addrg_param = [java, '-Xmx'+mem, '-jar', picard, 'AddOrReplaceReadGroups', 'I='+samfile,
-            'O='+bamfile, 'SORT_ORDER=coordinate', 'RGID='+rgid, 'RGLB='+rglb, 
-            'RGPL='+rgpl, 'RGPU='+rgpu, 'RGSM='+rgsm, 'RGCN='+rgcn, 'RGDS='+rgds, 
-            'RGDT='+rgdt, 'RGPI='+rgpi, 'RGPG='+rgpg, 'RGPM='+rgpm, 'CREATE_INDEX=true']
+    addrg_param = [java, '-Xmx'+mem, '-jar', picard, 'AddOrReplaceReadGroups',
+        'I='+samfile, 'O='+bamfile, 'SORT_ORDER=coordinate', 'RGID='+rgid, 
+        'RGLB='+rglb, 'RGPL='+rgpl, 'RGPU='+rgpu, 'RGSM='+rgsm, 'RGCN='+rgcn,
+        'RGDS='+rgds, 'RGDT='+rgdt, 'RGPI='+rgpi, 'RGPG='+rgpg, 'RGPM='+rgpm,
+        'CREATE_INDEX=true']
     try:
-        run_add = subprocess.check_call(' '.join(addrg_param), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        run_add = subprocess.check_call(' '.join(addrg_param), shell=True)
         logger.info('Read group information added')
     except subprocess.CalledProcessError as ret:
-        logger.info('Picard failed wiht return code: '+ str(ret.returncode))
+        logger.info('Picard failed wiht return code: {0}'.format(ret.returncode))
+        logger.info('Picard command: {0}'.format(ret.cmd))
         sys.exit()
     return(bamfile)
 
@@ -69,15 +71,19 @@ def markdup(samfile):
     dupscore = config['Picard']['dupscore']
     dupregex = config['Picard']['dupregex']
     duppix = config['Picard']['duppix']
-    mdup_args = [java, '-Xmx'+mem, '-jar', picard, 'MarkDuplicates', 'I='+samfile, 'O='+bamfile, 
-            'METRICS_FILE='+metrics, 'REMOVE_DUPLICATES='+dup, 'ASSUME_SORTED=true',
-            'DUPLICATE_SCORING_STRATEGY='+dupscore, 'READ_NAME_REGEX="'+dupregex+'"',
-            'OPTICAL_DUPLICATE_PIXEL_DISTANCE='+duppix,'CREATE_INDEX=true']
+    mdup_args = [java, '-Xmx'+mem, '-jar', picard, 'MarkDuplicates',
+        'I='+samfile, 'O='+bamfile, 'METRICS_FILE='+metrics,
+        'REMOVE_DUPLICATES='+dup, 'ASSUME_SORTED=true',
+        'DUPLICATE_SCORING_STRATEGY='+dupscore,
+        'READ_NAME_REGEX="'+dupregex+'"',
+        'OPTICAL_DUPLICATE_PIXEL_DISTANCE='+duppix,
+        'CREATE_INDEX=true']
     try:
-        run_mdup = subprocess.check_call(' '.join(mdup_args), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        run_mdup = subprocess.check_call(' '.join(mdup_args), shell=True)
         logger.info('PCR duplicates marked/removed')
     except subprocess.CalledProcessError as ret:
-        logger.info('Picard failed with return code: '+ str(ret.returncode))
+        logger.info('Picard failed wiht return code: {0}'.format(ret.returncode))
+        logger.info('Picard command: {0}'.format(ret.cmd))
         sys.exit()
     return(bamfile, metrics)
 
@@ -91,12 +97,14 @@ def fixmate(samfile):
     mem = config['General']['mem']
     picard = config['Picard']['picard']
     fmate_args = [java, '-Xmx'+mem, '-jar', picard, 'FixMateInformation',
-            'I='+samfile, 'O='+bamfile, 'ASSUME_SORTED=true', 'ADD_MATE_CIGAR=true','CREATE_INDEX=true']
+        'I='+samfile, 'O='+bamfile, 'ASSUME_SORTED=true', 
+        'ADD_MATE_CIGAR=true','CREATE_INDEX=true']
     try:
-        run_fmate = subprocess.check_call(' '.join(fmate_args), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        run_fmate = subprocess.check_call(' '.join(fmate_args), shell=True)
         logger.info('Mate information corrected')
     except subprocess.CalledProcessError as ret:
-        logger.info('Picard failed with return code: '+ str(ret.returncode))
+        logger.info('Picard failed wiht return code: {0}'.format(ret.returncode))
+        logger.info('Picard command: {0}'.format(ret.cmd))
         sys.exit()
     return(bamfile)
 
@@ -106,6 +114,6 @@ if __name__ == '__main__':
     parser.add_argument('-b', type=str, dest='bamfile', help='Bam file path')
     parser.add_argument('-a', type=str, dest='base', help='Basename')
     args = parser.parse_args()
-    bam = addreadgroup(args.bamfile,args.base)
-    bam, metrics = markdup(bam)
+    #bam = addreadgroup(args.bamfile,args.base)
+    bam, metrics = markdup(args.bamfile)
     bam = fixmate(bam)
