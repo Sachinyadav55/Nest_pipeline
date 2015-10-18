@@ -21,9 +21,10 @@ def run_qc(fwd, rev, outdir, base):
     '''Run FastQC and Trimmomatic, written to perform 
     quality trimming in FASTQ files. In the current implementation of this module
     arguments are directly read from the config. Parameters are set to default.
-    And can be changed by editing the config file, or by running the pipeline with
-    the autoconfig script. This module is a part of the NEST pipeline, developed
-    by Shashidhar Ravishankar, at the Vannberg Lab, Georgia Institute of Technolgy.'''
+    And can be changed by editing the config file, or by running the 
+    pipeline with the autoconfig script. This module is a part of the NEST 
+    pipeline, developed by Shashidhar Ravishankar, at the Vannberg Lab, 
+    Georgia Institute of Technolgy.'''
     logger.info('Running Trimmomatic')
     config = configparser.ConfigParser()
     config.read('config.cfg')
@@ -45,24 +46,28 @@ def run_qc(fwd, rev, outdir, base):
         os.mkdir(fastqc_dir)
     if read2 == None:        #Single end analysis
         output = outdir + '/' + base + '_trimmed.fq.gz'
-        fastqc_args = [ fastqc, '--extract', '-o', fastqc_dir, '-f', 'fastq', read1]
+        fastqc_args = [ fastqc, '--extract', '-o', fastqc_dir, '-f', 'fastq', 
+            read1]
         trim_args = [java, '-jar', trim_path, 'SE', '-phred33', read1, output, 
-                    'ILLUMINACLIP:{0}:2:30:10'.format(adapters), 'LEADING:{0}'.format(leading), 
-                    'TRAILING:.{0}'.format(trailing), 'SLIDINGWINDOW:{0}'.format(window), 
-                    'MINLEN:{0}'.format(minlen)]
+            'ILLUMINACLIP:{0}:2:30:10'.format(adapters), 
+            'LEADING:{0}'.format(leading), 'TRAILING:.{0}'.format(trailing), 
+            'SLIDINGWINDOW:{0}'.format(window), 'MINLEN:{0}'.format(minlen)]
         try:
-            run_fastqc  =  subprocess.check_call(' '.join(fastqc_args), stdout=subprocess.PIPE, 
-                                                stderr=subprocess.PIPE, shell=True)
+            run_fastqc  =  subprocess.check_call(' '.join(fastqc_args), 
+                shell=True)
             logger.info('Fastq quality reports created')
         except subprocess.CalledProcessError as ret:
-            logger.info('FastQC fail with return code: {0}'.format(ret.returncode))
+            logger.info('FastQC fail with return code: \
+                {0}'.format(ret.returncode))
+            logger.info('FastQC comman: {0}'.format(ret.cmd))
             sys.exit()
         try:
-            run_trim = subprocess.check_call(' '.join(trim_args), stdout=subprocess.PIPE, 
-                                            stderr=subprocess.PIPE, shell=True)
+            run_trim = subprocess.check_call(' '.join(trim_args), shell=True)
             logger.info('Fastq trimming completed successfully')
         except subprocess.CalledProcessError as ret:
-            logger.info('Trimmomatic failed with return code: {0}'.format(ret.returncode))
+            logger.info('Trimmomatic failed with return code: \
+                {0}'.format(ret.returncode))
+            logger.info('Trimmomatic command: {0}'.format(ret.cmd))
             sys.exit()
         read1 = output
     else :      #Paired end analysis
@@ -70,24 +75,30 @@ def run_qc(fwd, rev, outdir, base):
         output_rev = outdir + '/' + base + '_r2_trimmed.fq.gz'
         trash_fwd = outdir + '/' + base + '_r1_unpaired.fq.gz'
         trash_rev = outdir + '/' + base + '_r2_unpaired.fq.gz'
-        fastqc_args = [fastqc_path, '--extract', '-o', fastqc_dir, '-f', 'fastq', read1, read2]
-        trim_args = [java, '-jar', trim_path, 'PE', '-phred33', read1, read2, output_fwd, 
-                    trash_fwd, output_rev, trash_rev, 'ILLUMINACLIP:{0}:2:30:10'.format(adapters), 
-                    'LEADING:{0}'.format(leading), 'TRAILING:{0}'.format(trailing), 
-                    'SLIDINGWINDOW:{0}'.format(window), 'MINLEN:{0}'.format(minlen)]
+        fastqc_args = [fastqc_path, '--extract', '-o', fastqc_dir, '-f', 
+            'fastq', read1, read2]
+        trim_args = [java, '-jar', trim_path, 'PE', '-phred33', read1, 
+            read2, output_fwd, trash_fwd, output_rev, trash_rev, 
+            'ILLUMINACLIP:{0}:2:30:10'.format(adapters), 
+            'LEADING:{0}'.format(leading), 'TRAILING:{0}'.format(trailing), 
+            'SLIDINGWINDOW:{0}'.format(window), 'MINLEN:{0}'.format(minlen)]
         try:
-            run_fastqc = subprocess.check_call(' '.join(fastqc_args), stdout=subprocess.PIPE, 
-                                                stderr=subprocess.PIPE, shell=True)
+            run_fastqc = subprocess.check_call(' '.join(fastqc_args),
+                shell=True)
             logger.info('Fastq quality reports created')
         except subprocess.CalledProcessError as ret:
-            logger.info('FastQC failed with return code: {0}'.format(ret.returncode))
+            logger.info('FastQC failed with return code: \
+                {0}'.format(ret.returncode))
+            logger.info('FastQC command: {0}'.format(ret.cmd))
             sys.exit()
         try:
-            run_trim = subprocess.check_call(' '.join(trim_args), stdout=subprocess.PIPE, 
-                                            stderr=subprocess.PIPE, shell=True)
+            run_trim = subprocess.check_call(' '.join(trim_args),
+                shell=True)
             logger.info('Fastq trimming completed successfully')
         except subprocess.CalledProcessError as ret:
-            logger.info('Trimmomatic failed with return code: '+ str(ret.returncode))
+            logger.info('Trimmomatic failed with return code: \
+                {0}'.format(ret.returncode))
+            logger.info('Trimmomatic command: {0}'.format(ret.cmd))
             sys.exit()
         read1 = output_fwd
         read2 = output_rev
