@@ -348,4 +348,4 @@ if __name__ == '__main__' :
             args.ics, args.maxcyc, args.mcs, args.bqsrgpen,args.ddq,
             args.idq, args.calconf, args.emitconf, args.gtmode, args.mmq, 
             args.ann, args.applymode, args.filterlevel)
-    #main()
+    main()
