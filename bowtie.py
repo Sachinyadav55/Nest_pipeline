@@ -17,7 +17,7 @@ logger.addHandler(stream)
 
 def bowtie(read1,read2,outdir,base):
 
-    logging.info('Aligning fastq files to reference using bowtie')
+    logger.info('Aligning fastq files to reference using bowtie')
     outfile = outdir + '/' + base + '.bam'
     bowtie_args = list()
     config = configparser.ConfigParser()
@@ -37,6 +37,7 @@ def bowtie(read1,read2,outdir,base):
     maxins = config['Bowtie']['maxins']
     orient = config['Bowtie']['orient']
     threads = config['General']['threads']
+    print(outfile)
     try:
         preset = config['Bowtie']['preset']
         bowtie_args = [ bowtie, '-x', index, '-S',outfile, qual_form,
@@ -82,4 +83,3 @@ if __name__ == '__main__':
     parser.add_argument('-b', type=str, dest='base', help='Basename')
     args = parser.parse_args()
     ret = bowtie(args.forward, args.reverse, args.outdir, args.base)
-
