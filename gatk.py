@@ -30,6 +30,8 @@ def target(samfile):
     window = config['GATK']['window']
     threads = config['General']['threads']
     reference = config['General']['reference']
+    exome = config['GATK']['exome']
+   
     known = list()
     if config['GATK']['known'] == 'null':
         known = ['-known', config['General']['dbsnp']]
@@ -37,11 +39,15 @@ def target(samfile):
         for lines in config['GATK']['known'].split(','):
             known.append('-known')
             known.append(lines)
+
     
     trcr_args = [java, '-jar', gatk, '-T', 'RealignerTargetCreator', '-o',
         interval, '-maxInterval', maxint, '-minReads', minreads, '-mismatch',
         mismatch, '-window', window, '-nt', threads, '-I', samfile, '-R',
         reference ] + known
+    if exome != 'null':
+        trcr_args += ['-L', exome]
+ 
     try:
         run_trcr = subprocess.check_call(' '.join(trcr_args), shell=True)
         logger.info('Realginer target creator completed')
@@ -70,11 +76,15 @@ def realigner(samfile, interval):
     greedy = config['GATK']['greedy']
     maxreads = config['GATK']['maxreads']
     maxinmem = config['GATK']['maxinmem']
+    exome = config['GATK']['exome']
     inre_args = [java, '-jar', gatk, '-T', 'IndelRealigner',
         '--targetIntervals', interval, '-o', bamfile, '-model', model, '-LOD',
         lod, '-entropy', entropy, '--maxConsensuses', maxcon, '-maxIsize',
         maxins, '-maxPosMove', maxmoves, '-greedy', greedy, '-maxReads',
         maxreads, '-maxInMemory', maxinmem, '-I', samfile, '-R', reference]
+    if exome != 'null':
+        inre_args += ['-L', exome]
+ 
     try:
         run_inre = subprocess.check_call(' '.join(inre_args), shell=True)
         logger.info('Indel realignment completed')
@@ -100,6 +110,7 @@ def baserecal(samfile):
     ddq = config['GATK']['ddq']
     idq = config['GATK']['idq']
     threads = config['General']['threads']
+    exome = config['GATK']['exome']
     covariates = list()
     for covs in config['GATK']['covariates'].split(','):
         covariates.append('-cov')
@@ -115,6 +126,9 @@ def baserecal(samfile):
         '-I', samfile, '-o', table, '-ics', ics, '-maxCycle', maxcyc, '-mcs', 
         mcs, '-bqsrBAQGOP', bqsrgpen, '-ddq', ddq, '-idq', idq, '-nct', 
         threads] + covariates + knownsites
+    if exome != 'null':
+        bsrc_args += ['-L', exome]
+ 
     try:
         run_bsrc = subprocess.check_call(' '.join(bsrc_args), shell=True)
         logger.info('Base recalibration completed')
@@ -134,8 +148,12 @@ def printreads(samfile, table):
     gatk = config['GATK']['gatk']
     reference = config['General']['reference']
     threads = config['General']['threads']
+    exome = config['GATK']['exome']
     prre_args = [java, '-jar', gatk, '-T', 'PrintReads', '-R', reference, '-I',
             samfile, '-o', bamfile, '-BQSR', table, '-nct', threads]
+    if exome != 'null':
+        prre_args += ['-L', exome]
+ 
     try:
         run_prre = subprocess.check_call(' '.join(prre_args), shell=True)
         logger.info('Print reads completed')
@@ -159,10 +177,18 @@ def haplocaller(samfile):
     emitconf = config['GATK']['emitconf']
     threads = config['General']['threads']
     gtmode = config['GATK']['gtmode']
+    exome = config['GATK']['exome']
+    erc = config['GATK']['erc']
+    if erc == 'GVCF':
+        vcffile = os.path.splitext(samfile)[0] + '.g.vcf'
+    elif erc == 'NONE':
+        vcffile = os.path.splitext(samfile)[0] + '.vcf'
     hpcl_args = [java, '-jar', gatk, '-T', 'HaplotypeCaller', '-R', reference,
-        '-I', samfile, '--dbsnp', dbsnp,'--emitRefConfidence', 'GVCF',
-        '-stand_call_conf', calconf, '-stand_emit_conf', emitconf, '-o',
-        vcffile, '-nct', threads, '-gt_mode', gtmode]
+        '-I', samfile, '--dbsnp', dbsnp, '-stand_call_conf', calconf, 
+        '-stand_emit_conf', emitconf, '-o', vcffile, '-nct', threads, 
+        '-gt_mode', gtmode, '-ERC', erc]
+    if exome != 'null':
+        hpcl_args += ['-L', exome]
     try:
         run_hpcl = subprocess.check_call(' '.join(hpcl_args), shell=True)
         logger.info('Haplotype caller completed')
@@ -181,9 +207,13 @@ def joint_genotyper(gvcf_list, outdir):
     java = config['General']['java']
     gatk = config['GATK']['gatk']
     reference = config['General']['reference']
+    exome = config['GATK']['exome']
     variants = [' --variant '+ val for val in gvcf_list]
     jg_args = [java, '-jar', gatk, '-T', 'GenotypeGVCFs', '-R', reference, '-o',
         vcffile] + variants
+    if exome != 'null':
+        jg_args += ['-L', exome]
+ 
     try:
         run_jg = subprocess.check_call(' '.join(jg_args), shell=True)
         logger.info('Joint Genptyper completed')
@@ -209,13 +239,14 @@ def vqsr(vcf_file, outdir):
     known = config['GATK']['knownvqsr'].split(',')
     ann = config['GATK']['ann'].split(',')
     applymode = config['GATK']['applymode']
+    exome = config['GATK']['exome']
     annotation = list()
     for lines in ann:
-        annotation += ['-an', ann]
+        annotation += ['-an', lines]
     mode = ['-mode', 'SNP']
     vqsr_args = [java, '-jar', gatk, '-T', 'VariantRecalibrator', '-R', reference,
-        '-input', vcf_file,  '-mode', mode, '-recalFile', snprecalfile, 
-        '-tranchesFile', snptranchesfile, '-rscriptfile', snprscript,
+        '-input', vcf_file, '-recalFile', snprecalfile, 
+        '-tranchesFile', snptranchesfile, '-rscriptFile', snprscript,
         '-resource:hapmap,known=false,training=true,truth=true,prior=15.0', known[0],
         '-resource:omni,known=false,training=true,truth=false,prior=12.0', known[1],
         '-resource:1000G,known=false,training=true,truth=false,prior=10.0', known[2],
@@ -224,6 +255,9 @@ def vqsr(vcf_file, outdir):
     vqsrsnp_args = vqsr_args + mode
     mode = ['-mode', 'INDEL']
     vqsrindel_args = vqsr_args + mode
+    if exome != 'null':
+        vqsrsnp_args += ['-L', exome]
+        vqsrindel_args +=['-L', exome]
     try:
         if applymode == 'SNP':
             run_vqsr = subprocess.check_call(' '.join(vqsrsnp_args), shell=True)
@@ -252,6 +286,7 @@ def applyrecalibration(srf, irf, stf, itf, vcffile, otudir):
     reference = config['General']['reference']
     filterlevel = config['GATK']['filterlevel']
     applymode = config['GATK']['applymode']
+    exome = config['GATK']['exome']
     outfile = '{0}/joint_call_filtered.vcf'.format(outdir)
     if applymode == 'SNP':
         apply_args = [java, '-jar', gatk, '-T', 'ApplyRecalibration', '-R', reference,
@@ -266,6 +301,9 @@ def applyrecalibration(srf, irf, stf, itf, vcffile, otudir):
             '-input', vcffile, '--ts_filter_level', filterlevel, '-tranchesFile', stf,
             '-recalFile', srf, '-tranchesFile', itf, '-recalFile', irf, '-mode', 
             applymode, '-o', outfile]
+    if exome != 'null':
+        apply_args += ['-L', exome]
+ 
     try:
         run_apply = subporcess.check_call(' '.join(apply_args), shell=True)
         logger.info('Apply recalibration completed')
@@ -284,10 +322,10 @@ if __name__ == '__main__':
     parser.add_argument('-v', type=str, dest='vcffile', help='Vcf file') 
     parser.add_argument('-o', type=str, dest='outdir', help='Output directory path')
     args = parser.parse_args()
-    interval = target(args.bamfile)
-    bam = realigner(args.bamfile, interval)
-    table = baserecal(args.bamfile)
-    bam = printreads(args.bamfile, table)
-    vcffile = haplocaller(args.bamfile, args.outdir)
-    srf, irf, stf, itf = vqsr(vcffilei, args.outdir)
-    vcffile = applyrecalibration(srf, irf, stf, itf, vcffile, outdir)
+    #interval = target(args.bamfile)
+    #bam = realigner(args.bamfile, interval)
+    #table = baserecal(args.bamfile)
+    #bam = printreads(args.bamfile, table)
+    #vcffile = haplocaller(args.bamfile, args.outdir)
+    srf, irf, stf, itf = vqsr(args.vcffile, args.outdir)
+    #vcffile = applyrecalibration(srf, irf, stf, itf, vcffile, outdir)
