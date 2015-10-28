@@ -1,3 +1,4 @@
+#! /usr/bin/python3
 import os
 import re
 import sys
@@ -9,99 +10,23 @@ import bowtie
 import picard
 import logging
 import argparse
+import pandas as pd
 import trimgalore
 import subprocess
 import configparser
 import collections
 from multiprocessing import Pool
 from collections import defaultdict
-
-class DnaseqCohort:
-    
-    #Regex and dictionary initialization
-    #For output directory sturcture creation
-    read = re.compile('_[Rr]*1')
-    output_record = defaultdict()
-    file_record = defaultdict()
-
-    def __init__(self):
-        config = configparser.ConfigParser()
-        config.read('config.cfg')
-        #Get samples, sample names, reference, and outdir
-        self.read1 = config['General']['fwd'].split(',')
-        self.read2 = config['General']['rev'].split(',')
-        if len(self.read2) != 0:
-            self.samples = [read.split(os.path.basename(val))[0] \
-                            for val in self.read1]
-        elif config.samples == None and len(self.read2) == 0:
-            self.samples = [os.path.splitext(os.path.basename(val))[0] \
-                            for val in self.read1]
-        self.outdir = os.path.abspath(config['General']['outdir'])
-        self.reference = config['General']['reference']
-        
-    def create_outdir(self):
-        #Create sample specific output paths
-        self.outpaths = [self.outdir + '/' + val for val in \
-                        self.samples]
-        output_record = dict()
-        file_record = dict()
-        for paths,fwd,rev,name in zip(self.outpaths,self.read1, self.read2,
-            self.samples):
-            if not os.path.exists(paths):
-                os.mkdir(paths)
-            output_record[name] = paths
-            file_record[name] = [fwd,rev]
-        return (output_record, file_record)
-    
-    def preprocess(self, preargs):
-        self.base = preargs[0]
-        self.fwd = preargs[1]
-        self.rev = preargs[2]
-        self.datadir = preargs[3]
-
-        #Run quality control ananlysis and quality based trimming
-        qcdir = os.path.abspath(self.datadir) + '/qc'
-        if not os.path.exists(qcdir):
-            os.mkdir(qcdir)
-        self.fwd, self.rev = trimgalore.run_qc(self.fwd, self.rev, qcdir, 
-            self.base)
-
-        #Run alignment
-        self.bamfile = bowtie.bowtie(self.fwd, self.rev, self.datadir, 
-            self.base)
-        
-        #Run picard tools 
-        self.bamfile = picard.addreadgroup(self.bamfile, self.base)
-        self.bamfile, self.metrics = picard.markdup(self.bamfile)
-
-        #Run GATK realignment and quality recalibration
-        self.interval = gatk.target(self.bamfile)
-        self.bamfile = gatk.realigner(self.bamfile, self.interval)
-        self.table = gatk.baserecal(self.bamfile)
-        self.bamfile = gatk.printreads(self.bamfile, self.table)
-        self.gvcf = gatk.haplocaller(self.bamfile)
-        return(self.gvcf)
-
-    def joint_genotyping(self, gvcf_list):
-        #Run joint genotyping
-        self.gvcf_list = gvcf_list
-        self.vcffile = gatk.joint_genotyper(gvcf_list, self.outdir)
-        return(self.vcffile)
-
-    def vqsr(self, vcffile):
-        #Run VQSR and apply reclibration
-        self.vcffile = vcffile
-        self.srf, self.irf, self.stf, self.itf = gatk.vqsr(vcffile, self.outdir)
-        self.vcffile = gatk.applyrecalibration(self.srf, self.irf, self.stf,
-            self.itf, self.vcffile, self.outdir)
-        return(self.vcffile)
+from SeqCohort import SeqCohort
+from SeqMultiple import SeqMultiple
+from SeqRapid import SeqRapid
 
 def main():
     config = configparser.ConfigParser()
     config.read('config.cfg')
     pipeline = config['General']['pipeline']    
     if pipeline == 'dnaseq_cohort':
-        dc = DnaseqCohort()
+        dc = SeqCohort()
         output_record, file_record = dc.create_outdir()
         data = [[val,file_record[val][0],file_record[val][1],
             output_record[val]] for val in file_record]
@@ -110,6 +35,60 @@ def main():
         gvcf_list = pool_dc.map(dc.preprocess, data)
         vcffile = dc.joint_genotyping(gvcf_list)
         vcffile = dc.vqsr(vcffile)
+
+    elif pipeline == 'dnaseq':
+        dc = SeqMultiple()
+        output_record, file_record = dc.create_outdir()
+        data = [[val,file_record[val][0],file_record[val][1],
+            output_record[val]] for val in file_record]
+        outdir = output_record.values()
+        pool_dc = Pool(3) 
+        gvcf_list = pool_dc.map(dc.preprocess, data)
+
+    elif pipeline == 'exomeseq_cohort':
+        dc = SeqCohort()
+        output_record, file_record = dc.create_outdir()
+        data = [[val,file_record[val][0],file_record[val][1],
+            output_record[val]] for val in file_record]
+        outdir = output_record.values()
+        pool_dc = Pool(3) 
+        gvcf_list = pool_dc.map(dc.preprocess, data)
+        vcffile = dc.joint_genotyping(gvcf_list)
+        vcffile = dc.vqsr(vcffile)
+
+    elif pipeline == 'exomeseq':
+        dc = SeqMultiple()
+        output_record, file_record = dc.create_outdir()
+        data = [[val,file_record[val][0],file_record[val][1],
+            output_record[val]] for val in file_record]
+        outdir = output_record.values()
+        pool_dc = Pool(3) 
+        gvcf_list = pool_dc.map(dc.preprocess, data)
+    
+    elif pipeline == 'exomeseq_rapid':
+        dc = SeqRapid()
+        output_record, file_record = dc.create_outdir()
+        data = [[val,file_record[val][0],file_record[val][1],
+            output_record[val]] for val in file_record]
+        outdir = output_record.values()
+        pool_dc = Pool(3) 
+        fastq_list = pool_dc.map(dc.preprocess, data)
+        fwdlane = defaultdict(list)
+        revlane = defaultdict(list)
+        for f,r in fastq_list:
+            lane = os.path.basename(f).split('_L')[0]
+            fwdlane[lane].append(f)
+            lane = os.path.basename(r).split('_L')[0]
+            revlane[lane].append(r)
+        fwd = sorted([','.join(fwdlane[lanes]) for lanes in fwdlane])
+        rev = sorted([','.join(revlane[lanes]) for lanes in revlane])
+        base = [os.path.basename(os.path.dirname(os.path.dirname
+            (os.path.dirname(val.split(',')[0])))) for val in fwd]
+        outdir = [os.path.dirname(os.path.dirname(os.path.dirname(
+            val.split(',')[0]))) for val in fwd]
+        data = zip(base, fwd, rev, outdir)
+        pool_dc = Pool(3)
+        gvcf_list = pool_dc.map(dc.align, data)
     return
 
 def configure(fwd,rev,outdir,threads,java,mem,reference,kmer,adap,window,
@@ -119,10 +98,12 @@ def configure(fwd,rev,outdir,threads,java,mem,reference,kmer,adap,window,
         rgpi,rgpg,rgpm,dup,dupscore,dupregex,duppix,maxint,minreads,mismatches,
         windows,model,lod,entropy,maxcon,maxmoves,greedy,maxreads,
         maxinmem,covariates,ics,maxcyc,mcs,bqsrpen,ddq,idq,calconf,
-        emitconf,gtmode,mmq,ann,applymode,filterlevel):
+        emitconf,gtmode,mmq,ann,applymode,filterlevel,exome,pipeline,erc):
+    
+    #General config
     project = os.path.dirname(os.path.abspath(__file__))
     ref_dir = '/data/db/Homo_sapiens/UCSC'
-    ref_path = '{0}/{1}/Sequence/Bowtie2Index/genome.fa'.format(reference,
+    ref_path = '{1}/{0}/Sequence/Bowtie2Index/genome.fa'.format(reference,
         ref_dir)
     threads = str(int(int(threads)/3))
     config = configparser.ConfigParser()
@@ -141,7 +122,7 @@ def configure(fwd,rev,outdir,threads,java,mem,reference,kmer,adap,window,
     #General config
     config['General'] = {'fwd':','.join(fwd), 'rev':','.join(rev), 
         'outdir': outdir, 'threads':threads, 'java':java, 'mem':mem, 
-        'reference': ref_path, 'dbsnp': dbsnp, 'pipeline':'dnaseq_cohort'}
+        'reference': ref_path, 'dbsnp': dbsnp, 'pipeline':pipeline}
     
     #FastQC config
     fastqc_path = '{0}/FastQC/fastqc'.format(project)
@@ -155,7 +136,7 @@ def configure(fwd,rev,outdir,threads,java,mem,reference,kmer,adap,window,
 
     #Bowtie config
     bowtiepath = '{0}/bowtie2-2.2.5/bowtie2'.format(project)
-    bowtieindex = '{0}/{1}/Sequence/Bowtie2Index/genome'.format(reference,
+    bowtieindex = '{1}/{0}/Sequence/Bowtie2Index/genome'.format(reference,
         ref_dir)
     presets = {'5,1,0,22,S,0,2.50,end-to-end' : '--very-fast',
         '10,2,0,22,S,0,2.50,end-to-end' : '--fast',
@@ -203,7 +184,8 @@ def configure(fwd,rev,outdir,threads,java,mem,reference,kmer,adap,window,
         'knownsites': knownsites, 'ics': ics, 'maxcyc': maxcyc, 'mcs': mcs,
         'bqsrpen': bqsrpen, 'ddq': ddq, 'idq': idq, 'calconf': calconf,
         'emitconf': emitconf, 'gtmode': gtmode, 'knownvqsr': knownvqsr, 
-        'ann': ann, 'applymode': applymode, 'filterlevel': filterlevel}
+        'ann': ann, 'applymode': applymode, 'filterlevel': filterlevel,
+        'exome':exome, 'erc':erc}
 
     #Write config file
     with open('config.cfg','w') as configfile:
@@ -211,113 +193,185 @@ def configure(fwd,rev,outdir,threads,java,mem,reference,kmer,adap,window,
     return(os.path.abspath(project+'/config.cfg'))
 
 if __name__ == '__main__' :
-    nester = argparse.ArgumentParser()
-    nester.add_argument('-i', '--indir', type=str, help='Input directory path')
-    nester.add_argument('-c', '--config', type=str, 
+    nester = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    general = nester.add_argument_group('General')
+    general.add_argument('-i', '--indir', type=str, help='Input directory path.')
+    general.add_argument('-c', '--config', type=str, 
         default=os.path.dirname(os.path.abspath(__file__))+'.config.cfg', 
-        help='Config file path')
-    nester.add_argument('--outdir', type=str, default=None,
-        help='Output directory path')
-    nester.add_argument('--thread', type=str, default='6', help='Number of threads')
-    nester.add_argument('--java', type=str, default='/usr/bin/java', help='Java path')
-    nester.add_argument('--mem', type=str, default='4g', help='java memory limit')
-    nester.add_argument('--reference', type=str, default='hg19',
-        help='Genome build to use for analysis')
-    nester.add_argument('--fastqckmer', type=str, default='7', 
-        help='FastQC kmer threshold')
-    nester.add_argument('--window', type=str, default='4:15',
-        help='Trimmomatic sliding window and quality threshold')
-    nester.add_argument('--cropl', type=str, default='0', help='Crop 5\'')
-    nester.add_argument('--cropt', type=str, default='0', help='Crop 3\'')
-    nester.add_argument('--headcrop', type=str, default='0',
+        help='Config file path.')
+    general.add_argument('--outdir', type=str, default=None,
+        help='Output directory path.')
+    general.add_argument('--thread', type=str, default='6', help='Number of threads.')
+    general.add_argument('--java', type=str, default='/usr/bin/java', help='Java path.')
+    general.add_argument('--mem', type=str, default='4g', help='java memory limit.')
+    general.add_argument('--reference', type=str, default='hg19',
+        help='Genome build to use for analysis.')
+    general.add_argument('--pipeline', type=str, default='exomeseq_cohort',
+        choices=['exomeseq_cohort', 'dnaseq_cohort', 'dnaseq', 'exomeseq', 
+        'exomeseq_rapid'], help='Pipeline to run.')
+
+    fastqc = nester.add_argument_group('FastQC')
+    fastqc.add_argument('--fastqckmer', type=str, default='7', 
+        help='FastQC kmer lenght to analyse.')
+    trim = nester.add_argument_group('Trimmomatic')
+    trim.add_argument('--window', type=str, default='4:15',
+        help='Trimmomatic sliding window and quality threshold.')
+    trim.add_argument('--cropl', type=str, default='0', 
+        help='Length of bases at 5\' end to be dicarded if below quality threshold.')
+    trim.add_argument('--cropt', type=str, default='0', 
+        help='Length of bases at 3\' end to be discarded if below quality therhold.')
+    trim.add_argument('--headcrop', type=str, default='0',
         help='Clip n bases from the 5\' end')
-    nester.add_argument('--minlen', type=str, default='36',
+    trim.add_argument('--minlen', type=str, default='36',
         help='Minimum read length to retain read')
-    nester.add_argument('--adapters', type=str, default='adapters.txt',
-        help='FastQC adapter file')
-    nester.add_argument('--mode', type=str, default='local',
-        help='Bowtie2 alignment mode')
-    nester.add_argument('--mismatch', type=str, default='0',
+    trim.add_argument('--adapters', type=str, default='adapters.txt',
+        help='File containing adapter seqeunces.')
+    bowties = nester.add_argument_group('Bowtie')
+    bowties.add_argument('--mode', type=str, default='local',
+        help='Bowtie2 alignment mode.', choices=['local', 'global'])
+    bowties.add_argument('--mismatch', type=str, default='0',
         help='Mismatches allowed')
-    nester.add_argument('--seedlen', type=str, default='20', help='Seed length')
-    nester.add_argument('--interval', type=str, default='S,1,0.50',
+    bowties.add_argument('--seedlen', type=str, default='20', help='Seed length')
+    bowties.add_argument('--interval', type=str, default='S,1,0.50',
         help='Seed extension function')
-    nester.add_argument('--seedx', type=str, default='20', help='Seed extension')
-    nester.add_argument('--reseed', type=str, default='3', help='Reseed value')
-    nester.add_argument('--ambfunc', type=str, default='L,0,0.15', help='ambfunc')
-    nester.add_argument('--dpad', type=str, default='15', help='dpad')
-    nester.add_argument('--gbar', type=str, default='4', help='gbar')
-    nester.add_argument('--matbonus', type=str, default='2', help='matbonus')
-    nester.add_argument('--penrange', type=str, default='6,2', help='penrange')
-    nester.add_argument('--ambpen', type=str, default='1', help='ambpen')
-    nester.add_argument('--gappen', type=str, default='5,3', help='gappen')
-    nester.add_argument('--refgappen', type=str, default='5,3', help='refgappen')
-    nester.add_argument('--maplim', type=str, default='1', help='maplim')
-    nester.add_argument('--minins', type=str, default='0', help='minins')
-    nester.add_argument('--maxins', type=str, default='500', help='maxins')
-    nester.add_argument('--orient', type=str, default='fr', help='orientation')
-    nester.add_argument('--rgid', type=str, default='null', help='rgid')
-    nester.add_argument('--rglb', type=str, default='dnaseq_cohort', help='rglb')
-    nester.add_argument('--rgpl', type=str, default='Illumina', help='rgpl')
-    nester.add_argument('--rgpu', type=str, default='HiSeq2500', help='rgpu')
-    nester.add_argument('--rgsm', type=str, default='null', help='rgsm')
-    nester.add_argument('--rgcn', type=str, default='VannbergLab', help='rgcn')
-    nester.add_argument('--rgds', type=str, default='null', help='rgds')
-    nester.add_argument('--rgdt', type=str, default='null', help='rgdt')
-    nester.add_argument('--rgpi', type=str, default='null', help='rgpi')
-    nester.add_argument('--rgpg', type=str, default='null', help='rgpg')
-    nester.add_argument('--rgpm', type=str, default='null', help='rgpm')
-    nester.add_argument('--dup', type=str, default='false', help='dup')
-    nester.add_argument('--dupscore', type=str, default='SUM_OF_BASE_QUALITIES',
-        help='dupscore')
-    nester.add_argument('--dupregex', type=str,
-        default='[a-zA-Z0-9]+:[0-9]:([0-9]+):(0-9]+).*', help='dupregex')
-    nester.add_argument('--duppix', type=str, default='100', help='duppix')
-    nester.add_argument('--maxint', type=str, default='500', help='maxint')
-    nester.add_argument('--minreads', type=str, default='4', help='minreads')
-    nester.add_argument('--mismatches', type=str, default='0.0', help='mismatches')
-    nester.add_argument('--windows', type=str, default='10', help='windows')
-    nester.add_argument('--model', type=str, default='USE_READS', help='model')
-    nester.add_argument('--lod', type=str, default='5.0', help='lod')
-    nester.add_argument('--entropy', type=str, default='0.15', help='entropy')
-    nester.add_argument('--maxcon', type=str, default='30', help='maxcon')
-    nester.add_argument('--maxmoves', type=str, default='200', help='maxmoves')
-    nester.add_argument('--greedy', type=str, default='120', help='greedy')
-    nester.add_argument('--maxreads', type=str, default='20000', help='maxreads')
-    nester.add_argument('--maxinmem', type=str, default='150000', help='maxinmem')
-    nester.add_argument('--covariantes', type=str, nargs='+', 
+    bowties.add_argument('--seedx', type=str, default='20', help='Seed extension')
+    bowties.add_argument('--reseed', type=str, default='3', help='Reseed value')
+    bowties.add_argument('--ambfunc', type=str, default='L,0,0.15', 
+        help='A function to govern the maximum number of ambiguous characters.')
+    bowties.add_argument('--dpad', type=str, default='15', 
+        help='"Pads" dynamic programming problems, by n colmuns to allow gaps.')
+    bowties.add_argument('--gbar', type=str, default='4',
+        help='Disallow gaps n bases from start or end of read.')
+    bowties.add_argument('--matbonus', type=str, default='2',
+        help='Set match bonus.')
+    bowties.add_argument('--penrange', type=str, default='6,2',
+        help='Set maximum and minimum mismatch penalties.')
+    bowties.add_argument('--ambpen', type=str, default='1',
+        help='Set penality for positions in read and reference with N\'s')
+    bowties.add_argument('--gappen', type=str, default='5,3',
+        help='Set read gap open and extend penalties.')
+    bowties.add_argument('--refgappen', type=str, default='5,3',
+        help='Set reference gap open and extend penalties.')
+    bowties.add_argument('--maplim', type=str, default='1',
+        help='Number of distinct alignments allowed for a read.')
+    bowties.add_argument('--minins', type=str, default='0', 
+        help='Minimum fragment length for valid paired end alignment.')
+    bowties.add_argument('--maxins', type=str, default='500',
+        help='Maximum fragment length for valid paired end alignment.')
+    bowties.add_argument('--orient', type=str, default='fr',
+        help='Paired end read orientation.')
+    arg = nester.add_argument_group('Add Or Replace Read Group')
+    arg.add_argument('--rgid', type=str, default='null',
+        help='Read group ID.')
+    arg.add_argument('--rglb', type=str, default='Exome_Seq',
+        help='Read group library.')
+    arg.add_argument('--rgpl', type=str, default='Illumina',
+        help='Read group platform.')
+    arg.add_argument('--rgpu', type=str, default='HiSeq2500',
+        help='Read group platform unit.')
+    arg.add_argument('--rgsm', type=str, default='null',
+        help='Read group sample name.')
+    arg.add_argument('--rgcn', type=str, default='VannbergLab',
+        help='Read group sequencing center name.')
+    arg.add_argument('--rgds', type=str, default='null',
+        help='Read group description.')
+    arg.add_argument('--rgdt', type=str, default='null',
+        help='Read group run date.')
+    arg.add_argument('--rgpi', type=str, default='null',
+        help='Read group predicted insert size.')
+    arg.add_argument('--rgpg', type=str, default='null',
+        help='Read group program group.')
+    arg.add_argument('--rgpm', type=str, default='null',
+        help='Read group platform model')
+    mark = nester.add_argument_group('Mark Duplicates')
+    mark.add_argument('--dup', type=str, default='false',
+        help='If true will not write duplicates in to bam file.')
+    mark.add_argument('--dupscore', type=str, default='SUM_OF_BASE_QUALITIES',
+        help='The scoring strategy for choosing non-duplicate reads.')
+    mark.add_argument('--dupregex', type=str,
+        default='[a-zA-Z0-9]+:[0-9]:([0-9]+):(0-9]+).*', 
+        help='Regex expression that can be used to parse read names.')
+    mark.add_argument('--duppix', type=str, default='100',
+        help='Maximum offset between two duplicate clusters to consider\
+        them optical duplicates.')
+    indel = nester.add_argument_group('Indel realignment')
+    indel.add_argument('--maxint', type=str, default='500', 
+        help='Maximum interval size.')
+    indel.add_argument('--exome', type=str, default='null',
+        help='One or more genomic intervals over which to operate.')
+    indel.add_argument('--minreads', type=str, default='4',
+        help='Minimum reads at a locus to enable entropy calculation.')
+    indel.add_argument('--mismatches', type=str, default='0.0',
+        help='Fraction of base qualities needing to mismatch for a position\
+        to have high entropy.')
+    indel.add_argument('--windows', type=str, default='10',
+        help='Window size for calculating entropy or SNP clusters.')
+    indel.add_argument('--model', type=str, default='USE_READS',
+        help='Determines how to compute the possible alternate consenses.')
+    indel.add_argument('--lod', type=str, default='5.0',
+        help='LOD threshold above which the cleaner will clean.')
+    indel.add_argument('--entropy', type=str, default='0.15',
+        help='Percentage of a mismatches at a locus to be considered having\
+        high entropy.')
+    indel.add_argument('--maxcon', type=str, default='30',
+        help='Max alternate consensuses to try.')
+    indel.add_argument('--maxmoves', type=str, default='200',
+        help='Maximum positional move in basepairs that a read can be adjusted\
+        during realignment.')
+    indel.add_argument('--greedy', type=str, default='120',
+        help='Max reads used for finding the alternate consensuses.')
+    indel.add_argument('--maxreads', type=str, default='20000',
+        help='Max reads allowed at an interval for realignment.')
+    indel.add_argument('--maxinmem', type=str, default='150000', 
+        help='Max reads allowed to be kept in memory at a time by the SAMFileWriter.')
+    base = nester.add_argument_group('Base Quality Score Recalibration')
+    base.add_argument('--covariantes', type=str, nargs='+', 
         default='ReadGroupCovariate,QualityScoreCovariate,CycleCovariate,ContextCovariate',
-        help='Covariates')
-    nester.add_argument('--ics', type=str, default='3', help='ics')
-    nester.add_argument('--maxcyc', type=str, default='500', help='maxcyc')
-    nester.add_argument('--mcs', type=str, default='2', help='mcs')
-    nester.add_argument('--bqsrgpen', type=str, default='40.0', help='bqsrgen')
-    nester.add_argument('--ddq', type=str, default='45', help='ddq')
-    nester.add_argument('--idq', type=str, default='45', help='idq')
-    nester.add_argument('--calconf', type=str, default='30.0', 
-        help='call confidence')
-    nester.add_argument('--emitconf', type=str, default='10.0',
-        help='emit confidence')
-    nester.add_argument('--gtmode', type=str, default='DISCOVERY',
-        help='genotype')
-    nester.add_argument('--mmq', type=str, default='20', 
-        help='minimum mapping quality')
-    nester.add_argument('--ann', type=str, 
-        default='QD,MD,MQRankSum,ReadPosRankSum,FS,SOR,InbreedingCoeff',
+        help='Covariatesi to be used in the recalibration.')
+    base.add_argument('--ics', type=str, default='3',
+        help='Size of k-mer context to be used for base indels.')
+    base.add_argument('--maxcyc', type=str, default='500', 
+        help='The maximum cycle value permitted for cycle covariates.')
+    base.add_argument('--mcs', type=str, default='2',
+        help='Size of the k-mer context to be used for base mismatches.')
+    base.add_argument('--bqsrgpen', type=str, default='40.0',
+        help='BQSR BAQ gap open penalty.')
+    base.add_argument('--ddq', type=str, default='45',
+        help='Default quality for the base deletions covariate.')
+    base.add_argument('--idq', type=str, default='45',
+        help='Default quality for base insertion covariate.')
+    haplo = nester.add_argument_group('Haplotype Caller')
+    haplo.add_argument('--calconf', type=str, default='30.0', 
+        help='The minimum phred scaled confidence threshold for calling variants.')
+    haplo.add_argument('--emitconf', type=str, default='10.0',
+        help='The minimum phred scaled confidence threshold for emitting variants.')
+    haplo.add_argument('--gtmode', type=str, default='DISCOVERY',
+        help='Specify how to determine the alternate allele.')
+    haplo.add_argument('--mmq', type=str, default='20', 
+        help='Minimum read mapping quality for variant calling.')
+    haplo.add_argument('--erc', type=str, default='NONE',
+        help='Mode for emitting reference confiedence scores.')
+    vqsr = nester.add_argument_group('Variant Quality Score Recalibration')
+    vqsr.add_argument('--ann', type=str, 
+        default='QD,MQ,MQRankSum,ReadPosRankSum,FS,SOR',
         help='Annotations used for vairant score recalibration')
-    nester.add_argument('--applymode', type=str, default='BOTH',
+    vqsr.add_argument('--applymode', type=str, default='BOTH',
         help='VQSR apply mode')
-    nester.add_argument('--filterlevel', type=str, default='99.0',
+    vqsr.add_argument('--filterlevel', type=str, default='99.0',
         help='Filter level')
     args = nester.parse_args()
     if args.outdir == None:
         args.outdir = args.indir + 'Outputs'
     if not os.path.exists(args.outdir):
         os.mkdir(args.outdir)
+    if args.pipeline == 'Exome_Seq' and args.exome == 'null':
+        logger.error('Exome capture intervals not provided')
+        sys.exit()
     read = re.compile('_[Rr]*1')
     basename = re.compile('_[Rr]*[12]')
     fastq = re.compile('fastq|fq')
-    input_files = glob.glob(os.path.abspath(args.indir+'*.fastq'))
+    input_files = glob.glob(os.path.abspath(args.indir+'*.fastq*'))
     input_dict = defaultdict(list)
     for lines in input_files:
         base = basename.split(fastq.split(os.path.basename(lines))[0])[0]
@@ -329,8 +383,20 @@ if __name__ == '__main__' :
             fwd.append(input_dict[lines][0])
             rev.append(input_dict[lines][1])
         else:
-            fwd.append(input_dict[lines][0])
-            rev.append(input_dict[lines][1])
+            fwd.append(input_dict[lines][1])
+            rev.append(input_dict[lines][0])
+    #fwdlane = defaultdict(list)
+    #revlane = defaultdict(list)
+    #for f,r in zip(fwd,rev):
+    #    print(f,r)
+    #    lane = os.path.basename(f).split('_L')[0]
+    #    fwdlane[lane].append(f)
+    #    lane = os.path.basename(r).split('_L')[0]
+    #    revlane[lane].append(r)
+    #fwd = sorted([';'.join(fwdlane[lanes]) for lanes in fwdlane])
+    #rev = sorted([';'.join(revlane[lanes]) for lanes in revlane])
+            
+            
     if args.rgdt == 'null':
             args.rgdt = time.strftime('%Y-%m-%d')
     configure(fwd,rev,args.outdir,args.thread,args.java,args.mem,args.reference,
@@ -347,5 +413,6 @@ if __name__ == '__main__' :
             args.greedy, args.maxreads,args.maxinmem, args.covariantes,
             args.ics, args.maxcyc, args.mcs, args.bqsrgpen,args.ddq,
             args.idq, args.calconf, args.emitconf, args.gtmode, args.mmq, 
-            args.ann, args.applymode, args.filterlevel)
+            args.ann, args.applymode, args.filterlevel, args.exome,
+            args.pipeline, args.erc)
     main()
