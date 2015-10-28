@@ -28,8 +28,6 @@ def run_qc(fwd, rev, outdir, base):
     logger.info('Running Trimmomatic')
     config = configparser.ConfigParser()
     config.read('config.cfg')
-    read1 = fwd
-    read2 = rev
     fastqc_path = config['FastQC']['fastqc']
     kmer = config['FastQC']['kmer']
     fastqc_dir = outdir + '/fastqc'
@@ -42,16 +40,19 @@ def run_qc(fwd, rev, outdir, base):
     trim_path = config['Trimmomatic']['trimmomatic']
     trailing = config['Trimmomatic']['trailing']
     java = config['General']['java']
+    read1 = fwd
+    read2 = rev
+    print(read1, read2)
     if not os.path.exists(fastqc_dir):
         os.mkdir(fastqc_dir)
     if read2 == None:        #Single end analysis
-        output = outdir + '/' + base + '_trimmed.fq.gz'
+        output = outdir + '/' + base + '_trimmed.fq.gz' 
         fastqc_args = [ fastqc, '--extract', '-o', fastqc_dir, '-f', 'fastq', 
-            read1]
-        trim_args = [java, '-jar', trim_path, 'SE', '-phred33', read1, output, 
-            'ILLUMINACLIP:{0}:2:30:10'.format(adapters), 
-            'LEADING:{0}'.format(leading), 'TRAILING:.{0}'.format(trailing), 
-            'SLIDINGWINDOW:{0}'.format(window), 'MINLEN:{0}'.format(minlen)]
+            '--quiet', read1]
+        trim_args = [java, '-jar', trim_path, 'SE', '-phred33', output, 
+                'ILLUMINACLIP:{0}:2:30:10'.format(adapters), read1,
+                'LEADING:{0}'.format(leading), 'TRAILING:.{0}'.format(trailing), 
+                'SLIDINGWINDOW:{0}'.format(window), 'MINLEN:{0}'.format(minlen)]
         try:
             run_fastqc  =  subprocess.check_call(' '.join(fastqc_args), 
                 shell=True)
@@ -71,13 +72,13 @@ def run_qc(fwd, rev, outdir, base):
             sys.exit()
         read1 = output
     else :      #Paired end analysis
-        output_fwd = outdir + '/' +base + '_r1_trimmed.fq.gz'
-        output_rev = outdir + '/' + base + '_r2_trimmed.fq.gz'
-        trash_fwd = outdir + '/' + base + '_r1_unpaired.fq.gz'
-        trash_rev = outdir + '/' + base + '_r2_unpaired.fq.gz'
+        output_fwd = outdir + '/' + base + '_r1_trimmed.fq.gz' 
+        output_rev = outdir + '/' + base + '_r2_trimmed.fq.gz' 
+        trash_fwd = outdir + '/' + base + '_r1_unpaired.fq.gz' 
+        trash_rev = outdir + '/' + base + '_r2_unpaired.fq.gz' 
         fastqc_args = [fastqc_path, '--extract', '-o', fastqc_dir, '-f', 
-            'fastq', read1, read2]
-        trim_args = [java, '-jar', trim_path, 'PE', '-phred33', read1, 
+            'fastq', read1, read2, '--quiet']
+        trim_args = [java, '-jar', trim_path, 'PE', '-phred33', read1,
             read2, output_fwd, trash_fwd, output_rev, trash_rev, 
             'ILLUMINACLIP:{0}:2:30:10'.format(adapters), 
             'LEADING:{0}'.format(leading), 'TRAILING:{0}'.format(trailing), 
@@ -105,5 +106,10 @@ def run_qc(fwd, rev, outdir, base):
     return (read1,read2)
 
 if __name__ == '__main__':
-    #update unit test
-    ret = run_qc(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+    parser = argparse.ArgumentParser(description='Run Bowtie2')
+    parser.add_argument('-f', type=str, dest='forward', help='Forward read file path')
+    parser.add_argument('-r', type=str, dest='reverse', help='Reverse read file path') 
+    parser.add_argument('-o', type=str, dest='outdir', help='Output directory')
+    parser.add_argument('-b', type=str, dest='base', help='Basename')
+    args = parser.parse_args()
+    ret = run_qc(args.forward, args.reverse, args.outdir, args.base)
