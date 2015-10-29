@@ -278,7 +278,7 @@ def vqsr(vcf_file, outdir):
         sys.exit()
     return(snprecalfile, indelrecalfile, snptranchesfile, indeltranchesfile)
 
-def applyrecalibration(srf, irf, stf, itf, vcffile, otudir):
+def applyrecalibration(srf, irf, stf, itf, vcffile, outdir):
     logger.info('Running Apply recalibration')
     config = configparser.ConfigParser()
     config.read('config.cfg')
