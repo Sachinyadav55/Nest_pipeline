@@ -288,31 +288,38 @@ def applyrecalibration(srf, irf, stf, itf, vcffile, outdir):
     filterlevel = config['GATK']['filterlevel']
     applymode = config['GATK']['applymode']
     exome = config['GATK']['exome']
-    outfile = '{0}/joint_call_filtered.vcf'.format(outdir)
+    outfile_snp = '{0}/joint_snp_call_filtered.vcf'.format(outdir)
+    outfile_indel = '{0}/joint_indel_call_filtered.vcf'.format(outdir)
     if applymode == 'SNP':
         apply_args = [java, '-jar', gatk, '-T', 'ApplyRecalibration', '-R', reference,
             '-input', vcffile, '--ts_filter_level', filterlevel, '-tranchesFile', stf,
-            '-recalFile', srf, '-mode', applymode, '-o', outfile]
+            '-recalFile', srf, '-mode', applymode, '-o', outfile_snp]
     elif applymode == 'INDEL':
         apply_args = [java, '-jar', gatk, '-T', 'ApplyRecalibration', '-R', reference,
             '-input', vcffile, '--ts_filter_level', filterlevel, '-tranchesFile', itf,
-            '-recalFile', irf, '-mode', applymode, '-o', outfile]
+            '-recalFile', irf, '-mode', applymode, '-o', outfile_indel]
     elif applymode == 'BOTH':
-        apply_args = [java, '-jar', gatk, '-T', 'ApplyRecalibration', '-R', reference,
+        apply_snp_args = [java, '-jar', gatk, '-T', 'ApplyRecalibration', '-R', reference,
             '-input', vcffile, '--ts_filter_level', filterlevel, '-tranchesFile', stf,
-            '-recalFile', srf, '-tranchesFile', itf, '-recalFile', irf, '-mode', 
-            applymode, '-o', outfile]
+            '-recalFile', srf, '-mode', 'SNP', '-o', outfile_snp]
+        apply_indel_args = [java, '-jar', gatk, '-T', 'ApplyRecalibration', '-R', reference,
+            '-input', vcffile, '--ts_filter_level', filterlevel, '-tranchesFile', itf, 
+            '-recalFile', irf, '-mode', 'INDEL', '-o', outfile_indel] 
     if exome != 'null':
         apply_args += ['-L', exome]
  
     try:
-        run_apply = subporcess.check_call(' '.join(apply_args), shell=True)
+        if applymode == 'SNP' or applymode == 'INDEL':
+            run_apply = subporcess.check_call(' '.join(apply_args), shell=True)
+        else:
+            run_apply = subprocess.check_call(' '.join(apply_snp_args), shell=True)
+            run_apply = subprocess.check_call(' '.join(apply_indel_args, shell=True)
         logger.info('Apply recalibration completed')
     except subprocess.CalledProcessError as ret:
         logger.info('GATK failed with return code: {0}'.format(ret.returncode))
         logger.info('GATK command: {0}'.format(ret.cmd))
         sys.exit()
-    return(outfile)
+    return(outfile_snp, outfile_indel)
 
 
 if __name__ == '__main__':
