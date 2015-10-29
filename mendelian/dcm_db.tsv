@@ -1,0 +1,78 @@
+Chromosome	GenePosition	RefAllele	AltAllele	Flank1	Flank2	GeneName	Reference	Reference.Link	NumCases	Inheritance	Segregation	Phenotype	ProtChange	cDNAChange	RNAChange	Remark
+1	156100407	G	T	AATCTACTCTCCCCTCTCTTCTTTA	CAATACCAAGAAGGAGGGTGACCTGA	LMNA	Parks 2008, JdD		2	familial	-	cardiomyopathy, dilated (DCM)	p.=	    + c.357-1G>T	r.=	moved back one b/c didn't line up - c.357-1 --> c.356 works
+1	156106165	G	A	ACAGCACGCACGCACTAGCGGGCGC	TGGCCGTGGAGGAGGTGGATGAGGAG	LMNA	Moller 2009,Denmark:Copenhagen		1	familial, autosomal dominant	-	CMD	p.=	    + c.1318G>A	r.=	
+1	?	G	A			LMNA	Jakobs 2001	http://www.ncbi.nlm.nih.gov/pubmed/11561226	14	familial, autosomal dominant	-	DCM	p.E203K	c.G607A		c.607G>A
+1		C	A			LMNA	Fatkin et al 1999		?				p.R571S	c.C1711A		
+1		C	G			LMNA	Fatkin et al 1999		?				p.R60G	c.C178G		
+1		C	G			LMNA	Fatkin et al 1999		?				p.N195K	c.C585G		
+1		T	G			LMNA	Fatkin et al 1999		?				p.L85R	c.T254G		
+1		A	G			LMNA	Fatkin et al 1999		?				p.E203G	c.A608G		
+1		T	-			LMNA	Brodsky et al		?							
+1		C	T			LMNA	Becane et al		?							
+1		C	T			LMNA	Jakobs 2001		?							
+1		T	C			LMNA	Hershberger 2002	http://www.ncbi.nlm.nih.gov/pubmed/12486434	7	familial, autosomal dominant		DCM	p.L215P	c.T664C		
+1		G	A			LMNA	Stallmeyer 2012	http://www.ncbi.nlm.nih.gov/pubmed/22224630	1	familial, autosomal dominant		DCM, cardiac conduction disorder LBBB, AVBII, sinus bradycardia	p.W520X	c.G1560A		
+1		C	T			LMNA	Stallmeyer 2012	http://www.ncbi.nlm.nih.gov/pubmed/22224630	1?2?	familial, autosomal dominant		DCM, AF, AVBIII	p.Q517X	c.C1549T		one patient has familial sudden cardiac death and EDMD/neurologic symptoms. Brother presented DCM with AF and AVBIII but no muscular phenotype
+1		A	C			LMNA	Stallmeyer 2012	http://www.ncbi.nlm.nih.gov/pubmed/22224630	2	familial, autosomal dominant		DCM, (AF, AVBII)	p.D357A	c.A1070C		
+1		C	T			LMNA	Stallmeyer 2012	http://www.ncbi.nlm.nih.gov/pubmed/22224630	2	familial, autosomal dominant		DCM	p.R335W	c.C1003T		
+1		g	t			LMNA	Stallmeyer 2012	http://www.ncbi.nlm.nih.gov/pubmed/22224630	2	familial, autosomal dominant		DCM, EDMD	p.I497-E536del	c.g1489t		Splice site mutation
+1		g	t			LMNA	Stallmeyer 2012	http://www.ncbi.nlm.nih.gov/pubmed/22224630	1	familial, autosomal dominant		DCM	p.R386SfsX21	c.g1157+1t		present in 1 affected, 1 healthy, absent in 3rd healthy sister
+1		?	?			LMNA	Pasotti 2008		1	familial			p.R28W			
+1		?	?			LMNA	Pasotti 2008		3	familial			p.R89L			
+1		?	?			LMNA	Pasotti 2008		2	familial			p.K97E			
+1		?	?			LMNA	Pasotti 2008		1	F2/3			p.E161K			
+1		?	?			LMNA	Pasotti 2008		1	de novo			p.L183P			
+1		?	?			LMNA	Pasotti 2008		3	familial			p.R190W			
+1		?	?			LMNA	Pasotti 2008		3	familial			p.K219T			
+1		?	?			LMNA	Pasotti 2008		1	familial			p.K260N			
+1		?	?			LMNA	Pasotti 2008		1	?			p.Y267C			
+1		?	?			LMNA	Pasotti 2008		3	familial			p.E317K			
+1		?	?			LMNA	Pasotti 2008		1	?			p. R377L			
+1		?	?			LMNA	Pasotti 2008		2	familial			p.W498R			
+1		?	?			LMNA	Pasotti 2008		3	familial			p.S573L			
+1		?	?			LMNA	Pasotti 2008		1	familial			p.R644C			
+1		?	?			LMNA	Pasotti 2008		4	familial			p.E68-V69del	c.delAGGTGG212_8		
+1		?	?			LMNA	Pasotti 2008		5	familial			p.T10fs85X	c.delC31		
+1		?	?			LMNA	Pasotti 2008		2	familial			p.E111X			
+1		?	?			LMNA	Pasotti 2008		1	familial			p.Q246X			
+1		?	?			LMNA	Pasotti 2008		1	familial			p.P509fs39X	c.insC1525_6		
+1		?	?			LMNA	Pasotti 2008		3	familial			p.I527fsX23	c.insCTGC1579_80		
+1		T	C			LMNA	Kitaguchi 2001	http://www.ncbi.nlm.nih.gov/pubmed/11525883		familial, autosomal dominant			p.Y481H	c.T1441C		
+1		G	A			LMNA	Sebillon 2003	http://www.ncbi.nlm.nih.gov/pubmed/12920062	?	familial		DCM	p.E161K	c.G481A		
+1						LMNA	Sebillon 2003	http://www.ncbi.nlm.nih.gov/pubmed/12920062	?	familial		DCM	p.28insA			
+1		G	A			LMNA	Charniot 2003		?	familial		DCM	p.R377H	c.G1130A		
+1		C	T			LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721	2	familial		DCM	p.S573L	c.C1718T		
+1		C	T			LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721	?	familial		DCM	p.Q6X	c.C16T		
+1		G	C			LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721	?	familial		DCM	p.R50P	c.G149C		
+1		C	G			LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721	?	familial		DCM	p.R60G	c.C178G		
+1		T	G			LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721	?	familial		DCM	p.I63S	c.T188G		
+1		T	G			LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.L85R	c.T254G		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.R89L	c.G266T		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.K97E	c.G289T		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.E111X	c.A331G		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.R190W	c.C568T		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.N195K	c.C585G		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.E203G	c.A608G		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.E203K	c.G607A		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.dK208	c.dAAG624-6		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.R225X	c.C673T		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.dK261	c.dAAG783-5		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.Q294P	c.A881C		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.E317K	c.G949A		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.FS R321	c.959delT		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.E358K	c.G1072A		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.R377H	c.G1130A		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.R386K	c.G1157A		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.R453W	c.C1357T		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.FS466	c.1397delA		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.W520S	c.G1559C		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.525ins	c.+ctgc		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.R571S	c.C1711A		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.S573L	c.C1718T		
+1						LMNA	Taylor 2003	http://www.ncbi.nlm.nih.gov/pubmed/12628721		familial		DCM	p.R644C	c.C1930T		
+1						LMNA	Nguyen 2007	http://www.ncbi.nlm.nih.gov/pubmed/17150192		familial		DCM	p.L59R	c.T176C		
+						PLN	Morita 2005	http://www.ncbi.nlm.nih.gov/pubmed/15765133		familial		DCM	p.R9C			
+						MYH7	Morita 2005	http://www.ncbi.nlm.nih.gov/pubmed/15765133		familial		DCM	p.S532P	c.T1594C		
+						TNNI3	Morita 2005	http://www.ncbi.nlm.nih.gov/pubmed/15765133		familial		DCM	p.A2V	c.C5T		
+						TTN	Gerull 2002	http://www.ncbi.nlm.nih.gov/pubmed/11788824		familial		DCM	p.W930R	c.T2920C		
+						TTN	Lange 2005	http://www.ncbi.nlm.nih.gov/pubmed/15802564		familial		DCM	p.R279W	c.C102271T		
