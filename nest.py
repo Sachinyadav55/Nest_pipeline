@@ -102,14 +102,14 @@ def configure(fwd,rev,outdir,threads,java,mem,reference,kmer,adap,window,
     
     #General config
     project = os.path.dirname(os.path.abspath(__file__))
-    ref_dir = '/data/db/Homo_sapiens/UCSC'
-    ref_path = '{1}/{0}/Sequence/Bowtie2Index/genome.fa'.format(reference,
+    ref_dir = '/data/db/'
+    ref_path = '{1}/{0}/bowtie/genome.fa'.format(reference,
         ref_dir)
     threads = str(int(int(threads)/3))
     config = configparser.ConfigParser()
     
     #Database paths
-    data = '/data/db/Homo_sapiens/GATK/'
+    data = '/data/db/{0}/gatk/'.format(reference)
     mills = '{0}Mills_and_1000G_gold_standard.indels.hg19.sites.vcf.gz'.format(data)
     okg = '{0}1000G_phase1.indels.hg19.sites.vcf.gz'.format(data)
     dbsnp = '{0}dbsnp.vcf.gz'.format(data)
@@ -136,7 +136,7 @@ def configure(fwd,rev,outdir,threads,java,mem,reference,kmer,adap,window,
 
     #Bowtie config
     bowtiepath = '{0}/bowtie2-2.2.5/bowtie2'.format(project)
-    bowtieindex = '{1}/{0}/Sequence/Bowtie2Index/genome'.format(reference,
+    bowtieindex = '{1}/{0}/bowtie/genome'.format(reference,
         ref_dir)
     presets = {'5,1,0,22,S,0,2.50,end-to-end' : '--very-fast',
         '10,2,0,22,S,0,2.50,end-to-end' : '--fast',
@@ -207,10 +207,12 @@ if __name__ == '__main__' :
     general.add_argument('--mem', type=str, default='4g', help='java memory limit.')
     general.add_argument('--reference', type=str, default='hg19',
         help='Genome build to use for analysis.')
+    capture = '/data/db/hg19/exome/nexterarapidcapture_exome_targetedregions_v1.2.bed'
     general.add_argument('--pipeline', type=str, default='exomeseq_cohort',
         choices=['exomeseq_cohort', 'dnaseq_cohort', 'dnaseq', 'exomeseq', 
         'exomeseq_rapid'], help='Pipeline to run.')
-
+    general.add_argument('--exome', type=str, default=capture,
+        help='Exome capture kit interval file.')
     fastqc = nester.add_argument_group('FastQC')
     fastqc.add_argument('--fastqckmer', type=str, default='7', 
         help='FastQC kmer lenght to analyse.')
@@ -298,8 +300,6 @@ if __name__ == '__main__' :
     indel = nester.add_argument_group('Indel realignment')
     indel.add_argument('--maxint', type=str, default='500', 
         help='Maximum interval size.')
-    indel.add_argument('--exome', type=str, default='null',
-        help='One or more genomic intervals over which to operate.')
     indel.add_argument('--minreads', type=str, default='4',
         help='Minimum reads at a locus to enable entropy calculation.')
     indel.add_argument('--mismatches', type=str, default='0.0',
@@ -385,17 +385,6 @@ if __name__ == '__main__' :
         else:
             fwd.append(input_dict[lines][1])
             rev.append(input_dict[lines][0])
-    #fwdlane = defaultdict(list)
-    #revlane = defaultdict(list)
-    #for f,r in zip(fwd,rev):
-    #    print(f,r)
-    #    lane = os.path.basename(f).split('_L')[0]
-    #    fwdlane[lane].append(f)
-    #    lane = os.path.basename(r).split('_L')[0]
-    #    revlane[lane].append(r)
-    #fwd = sorted([';'.join(fwdlane[lanes]) for lanes in fwdlane])
-    #rev = sorted([';'.join(revlane[lanes]) for lanes in revlane])
-            
             
     if args.rgdt == 'null':
             args.rgdt = time.strftime('%Y-%m-%d')
