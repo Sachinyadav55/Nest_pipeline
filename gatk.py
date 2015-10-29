@@ -243,17 +243,18 @@ def vqsr(vcf_file, outdir):
     annotation = list()
     for lines in ann:
         annotation += ['-an', lines]
-    mode = ['-mode', 'SNP']
+    mode = ['-mode', 'SNP', '-recalFile', snprecalfile, '-tranchesFile',
+        snptranchesfile]
     vqsr_args = [java, '-jar', gatk, '-T', 'VariantRecalibrator', '-R', reference,
-        '-input', vcf_file, '-recalFile', snprecalfile, 
-        '-tranchesFile', snptranchesfile, '-rscriptFile', snprscript,
+        '-input', vcf_file, '-rscriptFile', snprscript,
         '-resource:hapmap,known=false,training=true,truth=true,prior=15.0', known[0],
         '-resource:omni,known=false,training=true,truth=false,prior=12.0', known[1],
         '-resource:1000G,known=false,training=true,truth=false,prior=10.0', known[2],
         '-resource:dbsnp,known=true,training=false,truth=false,prior=6.0', known[3]]
     vqsr_args += annotation
     vqsrsnp_args = vqsr_args + mode
-    mode = ['-mode', 'INDEL']
+    mode = ['-mode', 'INDEL', '-recalFile', indelrecalfile, '-tranchesFile',
+        indeltranchesfile]
     vqsrindel_args = vqsr_args + mode
     if exome != 'null':
         vqsrsnp_args += ['-L', exome]
@@ -275,7 +276,7 @@ def vqsr(vcf_file, outdir):
         logger.info('GATK failed with return code: {0}'.format(ret.returncode))
         logger.info('GATK command: {0}'.format(ret.cmd))
         sys.exit()
-    return(snprecalfile, indelrecalfile, snptranchesfile, indeltranschesfile)
+    return(snprecalfile, indelrecalfile, snptranchesfile, indeltranchesfile)
 
 def applyrecalibration(srf, irf, stf, itf, vcffile, otudir):
     logger.info('Running Apply recalibration')
