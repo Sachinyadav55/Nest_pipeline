@@ -76,6 +76,7 @@ SeqRapid ExomeSeq mode:
 * Illumina Rapid run feature added.
 * VQSR added.
 * Issue with memory and thread allocation per sample resolved.
+
 ####Version0.9.0:
 * Introducing config files to track runs.
 * Default config file generated each run, can be altered using command line options.
