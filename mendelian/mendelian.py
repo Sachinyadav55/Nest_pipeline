@@ -25,7 +25,7 @@ logger.addHandler(stream)
 
 def caseselect(vcffile, casepattern, outdir, thresh):
     vcfreader = vcf.Reader(filename=vcffile)
-    outfile = vcf.Writer(open('{0}/case_variants.vcf'.format(outdir),'w'),
+    outfile = vcf.Writer(open('{0}/case_variants_mendelian.vcf'.format(outdir),'w'),
         vcfreader)
     samples = vcfreader.samples
     groups = defaultdict(list)
@@ -34,6 +34,7 @@ def caseselect(vcffile, casepattern, outdir, thresh):
             groups['Case'].append(sample)
         elif types == '-':
             groups['Control'].append(sample)
+    print(groups)
     for lines in vcfreader:
         patient_gt = Counter([lines.genotype(val)['GT'] for val in \
             groups['Case']])
@@ -48,7 +49,8 @@ def caseselect(vcffile, casepattern, outdir, thresh):
     return ('{0}/case_variants.vcf'.format(outdir))
 
 def annovar(vcffile, outdir):
-    annovar = '{0}/annovar/table_annovar.pl'.format(os.path.dirname(os.path.abspath(__file__)))
+    annovar = '{0}/annovar/table_annovar.pl'.format(os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
     database = 'refGene,ljb26_all,avsnp142,popfreq_all_20150413'
     dbpath = '/data/db/annovar_humandb'
     build = 'hg19'

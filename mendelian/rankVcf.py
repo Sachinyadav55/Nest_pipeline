@@ -49,23 +49,6 @@ def caseselect(vcffile, outdir):
     samples = vcfreader.samples
     for lines in vcfreader:
         rank = 0
-        try:    
-            if lines.QUAL >= 30 :
-                rank += 1
-            if lines.INFO['QD'] >= 2:
-                rank += 1
-            if lines.INFO['FS'] <= 60:
-                rank += 1
-            if lines.INFO['MQ'] >= 40:
-                rank += 1
-            if len(lines.FILTER) > 0:
-                rank += 1
-            if lines.INFO['MQRankSum'] >= 12.5:
-                rank += 1
-            if lines.INFO['ReadPosRankSum'] >= 8.0:
-                rank += 1
-        except (KeyError,TypeError):
-            continue
         samples_rank = list()
         allele = list()
         for index, sample in enumerate(samples):
@@ -74,7 +57,7 @@ def caseselect(vcffile, outdir):
                 dp = lines.genotype(sample)['DP']
                 sample_rank = (ab[0] * dp)  + rank
             except (TypeError, KeyError, ZeroDivisionError):
-                continue
+                sample_rank = rank
             allele.append('{0:.1f}'.format(ab[1]))
             samples_rank.append('{0:.1f}'.format(sample_rank))
         lines.INFO['Rank'] = ','.join(samples_rank)

@@ -34,7 +34,16 @@ def scatterplot(vcffile, outdir):
                 '1/1':'Homozygous_Alternate', 
                 '1/2':'Non_Reference_Heterozygous',
                 '2/2':'Homozygous_Alternate',
+                '3/3':'Homozygous_Alternate',
+                '4/4':'Homozygous_Alternate',
                 '0/2':'Heterozygous',
+                '1/3':'Non_Reference_Heterozygous',
+                '2/3':'Non_Reference_Heterozygous',
+                '3/4':'Non_Reference_Heterozygous',
+                '2/4':'Non_Reference_Heterozygous',
+                '0/3':'Heterozygous',
+                '0/4':'Heterozygous',
+                '0/5':'Heterozygous',
                 None :'Homozygous_Reference'}
     lmna = 'chr19:52249680'
     for lines in vcfreader:
@@ -44,25 +53,44 @@ def scatterplot(vcffile, outdir):
             var['sample'] = sam
             var['refdepth'] = lines.genotype(sam)['AD'][0]
             var['altdepth'] = lines.genotype(sam)['AD'][1]
+            var['genotype'] = genotype[lines.genotype(sam)['GT']]
             var['rank'] = float(rank)
+            if lines.genotype(sam)['GT'] != '0/0' and lines.genotype(sam)['GT'] != None:
+                var['type'] = lines.INFO['ExonicFunc.refGene'][0]
+            else:
+                var['type'] = 'None'
             variants.append(var)
     variants = pd.DataFrame(variants)
     variants.sort(columns='rank', inplace=True)
     sns.set_palette('coolwarm')
-    call = variants[(variants.var_id == lmna)]
-    xy = [call.refdepth, call.altdepth]
     plt.figure()
     plt.title('Variant ranking')
-    sns.lmplot(x='refdepth', y='altdepth', data=variants,
-        col='sample', row='rank', hue='rank', palette='coolwarm')
+    sns.lmplot(x='refdepth', y='altdepth', data=variants, fit_reg=False,
+        col='sample', hue='rank', palette='coolwarm', col_wrap=3,
+        size=3, legend=False)
     plt.xlim([0,1000])
     plt.ylim([0,1000])
-    plt.savefig('test')
+    plt.savefig('{0}/allele_balance'.format(outdir))
     plt.close()
     plt.figure()
     plt.title('Variant genotypes')
+    sns.lmplot(x='refdepth', y='altdepth', data=variants, fit_reg=False,
+        col='sample', hue='genotype', col_wrap=3, size=3, legend=True,
+        palette=dict(Homozygous_Reference='b', Homozygous_Alternate='r',
+                    Heterozygous='g', Non_Reference_Heterozygous='y'))
+    plt.xlim([0,1000])
+    plt.ylim([0,1000])
+    plt.savefig('{0}/genotype'.format(outdir))
+    plt.close()
+    plt.figure()
+    plt.title('Variant Types')
+    sns.countplot(x='type', data=variants, hue='sample', palette='Set3')
+    plt.xticks(rotation=75)
+    plt.gcf().tight_layout()
+    plt.savefig('{0}/type'.format(outdir))
+    plt.close()
      
-    variants.to_csv('test',sep='\t',index_col=0)
+    variants.to_csv('{0}/case_variants.tsv'.format(outdir),sep='\t',index_col=0)
     return
 
 
