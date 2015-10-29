@@ -313,7 +313,7 @@ def applyrecalibration(srf, irf, stf, itf, vcffile, outdir):
             run_apply = subporcess.check_call(' '.join(apply_args), shell=True)
         else:
             run_apply = subprocess.check_call(' '.join(apply_snp_args), shell=True)
-            run_apply = subprocess.check_call(' '.join(apply_indel_args, shell=True)
+            run_apply = subprocess.check_call(' '.join(apply_indel_args), shell=True)
         logger.info('Apply recalibration completed')
     except subprocess.CalledProcessError as ret:
         logger.info('GATK failed with return code: {0}'.format(ret.returncode))
