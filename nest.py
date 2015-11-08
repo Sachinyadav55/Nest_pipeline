@@ -372,6 +372,8 @@ if __name__ == '__main__' :
     basename = re.compile('_[Rr]*[12]')
     fastq = re.compile('fastq|fq')
     input_files = glob.glob(os.path.abspath(args.indir+'*.fastq*'))
+    if len(input_files) == 0:
+        input_files = glob.glob(os.path.abspath(args.indir+'/*/*.fastq*'))
     input_dict = defaultdict(list)
     for lines in input_files:
         base = basename.split(fastq.split(os.path.basename(lines))[0])[0]
@@ -404,4 +406,4 @@ if __name__ == '__main__' :
             args.idq, args.calconf, args.emitconf, args.gtmode, args.mmq, 
             args.ann, args.applymode, args.filterlevel, args.exome,
             args.pipeline, args.erc)
-    main()
+    #main()

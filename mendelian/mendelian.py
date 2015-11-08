@@ -51,10 +51,10 @@ def caseselect(vcffile, casepattern, outdir, thresh):
 def annovar(vcffile, outdir):
     annovar = '{0}/annovar/table_annovar.pl'.format(os.path.dirname(
         os.path.dirname(os.path.abspath(__file__))))
-    database = 'refGene,ljb26_all,avsnp142,popfreq_all_20150413'
+    database = 'refGene,ljb26_all'
     dbpath = '/data/db/annovar_humandb'
     build = 'hg19'
-    operation = 'g,f,f,f'
+    operation = 'g,f'
  
     outfile = os.path.splitext(os.path.basename(vcffile))[0]
     outpath = '{0}/{1}'.format(outdir, outfile)
@@ -71,22 +71,29 @@ def annovar(vcffile, outdir):
     return('{0}.hg19_multianno.vcf'.format(outpath))
 
 def dcm(vcffile, outdir, database):
-    prots = set([prot[6]+'_'+prot[13] for prot in csv.reader(open(database),delimiter='\t')])
+    prots = defaultdict(set)
+    for lines in csv.reader(open('dcm_db.tsv'),delimiter='\t'):
+        if lines[0] == 'Gene':
+            continue
+        prots[lines[0]].add(lines[3])
     outfile = os.path.splitext(os.path.basename(vcffile))[0]
     outpath = '{0}/{1}_dcm.vcf'.format(outdir, outfile)
     vcfreader = vcf.Reader(filename=vcffile)
     vcfwriter = vcf.Writer(open(outpath,'w'), vcfreader)
     for lines in vcfreader:
         if None in lines.INFO['AAChange.refGene']:
-            lines.INFO['DCM'] = 'False'
+            lines.INFO['DCM'] = 'NA'
         else:
-            aac = set([pro.split(':')[0]+'_'+pro.split(':')[-1] for pro in lines.INFO['AAChange.refGene']])
-            if aac.intersection(prots):
-                lines.INFO['DCM'] = 'True'
+            gene = lines.INFO['Gene.refGene'][0]
+            aac = set([pro.split(':')[-1] for pro in lines.INFO['AAChange.refGene']])
+            if aac.intersection(prots[gene]):
+                lines.INFO['DCM'] = 'Tier1'
+            elif lines.INFO['ExonicFunc.refGene'][0] != 'synonymous_SNV' or \
+                lines.INFO['ExonicFunc.refGene'][0] != None:
+                lines.INFO['DCM'] = 'Tier2'
             else:
-                lines.INFO['DCM'] = 'False'
+                lines.INFO['DCM'] = 'Tier3'
         vcfwriter.write_record(lines)
-    return(outpath)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run mendelian filter')
