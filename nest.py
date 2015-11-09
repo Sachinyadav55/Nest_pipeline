@@ -406,4 +406,4 @@ if __name__ == '__main__' :
             args.idq, args.calconf, args.emitconf, args.gtmode, args.mmq, 
             args.ann, args.applymode, args.filterlevel, args.exome,
             args.pipeline, args.erc)
-    #main()
+    main()
