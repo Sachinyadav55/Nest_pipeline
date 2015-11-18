@@ -20,6 +20,7 @@ from collections import defaultdict
 from SeqCohort import SeqCohort
 from SeqMultiple import SeqMultiple
 from SeqRapid import SeqRapid
+from ChipRapid import ChipRapid
 
 def main():
     config = configparser.ConfigParser()
@@ -89,6 +90,32 @@ def main():
         data = zip(base, fwd, rev, outdir)
         pool_dc = Pool(3)
         gvcf_list = pool_dc.map(dc.align, data)
+
+    elif pipeline == 'chipseq_rapid':
+        dc = SeqRapid()
+        output_record, file_record = dc.create_outdir()
+        data = [[val,file_record[val][0],file_record[val][1],
+            output_record[val]] for val in file_record]
+        outdir = output_record.values()
+        pool_dc = Pool(3) 
+        fastq_list = pool_dc.map(dc.preprocess, data)
+        fwdlane = defaultdict(list)
+        revlane = defaultdict(list)
+        for f,r in fastq_list:
+            lane = os.path.basename(f).split('_L')[0]
+            fwdlane[lane].append(f)
+            lane = os.path.basename(r).split('_L')[0]
+            revlane[lane].append(r)
+        fwd = sorted([','.join(fwdlane[lanes]) for lanes in fwdlane])
+        rev = sorted([','.join(revlane[lanes]) for lanes in revlane])
+        base = [os.path.basename(os.path.dirname(os.path.dirname
+            (os.path.dirname(val.split(',')[0])))) for val in fwd]
+        outdir = [os.path.dirname(os.path.dirname(os.path.dirname(
+            val.split(',')[0]))) for val in fwd]
+        data = zip(base, fwd, rev, outdir)
+        pool_dc = Pool(2)
+        gvcf_list = pool_dc.map(dc.align, data)
+       
     return
 
 def configure(fwd,rev,outdir,threads,java,mem,reference,kmer,adap,window,
@@ -210,7 +237,7 @@ if __name__ == '__main__' :
     capture = '/data/db/hg19/exome/nexterarapidcapture_exome_targetedregions_v1.2.bed'
     general.add_argument('--pipeline', type=str, default='exomeseq_cohort',
         choices=['exomeseq_cohort', 'dnaseq_cohort', 'dnaseq', 'exomeseq', 
-        'exomeseq_rapid'], help='Pipeline to run.')
+        'exomeseq_rapid', 'chipseq_rapid'], help='Pipeline to run.')
     general.add_argument('--exome', type=str, default=capture,
         help='Exome capture kit interval file.')
     fastqc = nester.add_argument_group('FastQC')
