@@ -46,7 +46,7 @@ def caseselect(vcffile, casepattern, outdir, thresh):
         if patient_gt['0/1'] + patient_gt['1/1'] < thresh:
             continue
         outfile.write_record(lines)
-    return ('{0}/case_variants.vcf'.format(outdir))
+    return ('{0}/case_variants_mendelian.vcf'.format(outdir))
 
 def annovar(vcffile, outdir):
     annovar = '{0}/annovar/table_annovar.pl'.format(os.path.dirname(
@@ -70,6 +70,7 @@ def annovar(vcffile, outdir):
         sys.exit()
     return('{0}.hg19_multianno.vcf'.format(outpath))
 
+
 def dcm(vcffile, outdir, database):
     prots = defaultdict(set)
     for lines in csv.reader(open('dcm_db.tsv'),delimiter='\t'):
@@ -80,13 +81,19 @@ def dcm(vcffile, outdir, database):
     outpath = '{0}/{1}_dcm.vcf'.format(outdir, outfile)
     vcfreader = vcf.Reader(filename=vcffile)
     vcfwriter = vcf.Writer(open(outpath,'w'), vcfreader)
+    sam = vcfreader.samples
     for lines in vcfreader:
         if None in lines.INFO['AAChange.refGene']:
             lines.INFO['DCM'] = 'NA'
         else:
             gene = lines.INFO['Gene.refGene'][0]
-            aac = set([pro.split(':')[-1] for pro in lines.INFO['AAChange.refGene']])
-            if aac.intersection(prots[gene]):
+            aac = defaultdict(set)
+            for pro in lines.INFO['AAChange.refGene']:
+                aac[pro.split(':')[-1]].add(pro)
+            aachange = (prots[gene]).intersection(set(aac.keys()))
+            if aachange:
+                print(list(aachange)[0])
+                lines.INFO['AAChange.refGene'] = list(aac[list(aachange)[0]])
                 lines.INFO['DCM'] = 'Tier1'
             elif lines.INFO['ExonicFunc.refGene'][0] != 'synonymous_SNV' or \
                 lines.INFO['ExonicFunc.refGene'][0] != None:
