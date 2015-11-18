@@ -13,7 +13,8 @@ import configparser
 from collections import Counter
 from collections import defaultdict
 from time import gmtime, strftime
-
+from itertools import repeat
+from multiprocessing import Pool
 logger = logging.getLogger('Nest - GATK')
 logger.setLevel(logging.DEBUG)
 stream = logging.StreamHandler()
@@ -81,7 +82,6 @@ def dcm(vcffile, outdir, database):
     outpath = '{0}/{1}_dcm.vcf'.format(outdir, outfile)
     vcfreader = vcf.Reader(filename=vcffile)
     vcfwriter = vcf.Writer(open(outpath,'w'), vcfreader)
-    sam = vcfreader.samples
     for lines in vcfreader:
         if None in lines.INFO['AAChange.refGene']:
             lines.INFO['DCM'] = 'NA'
@@ -101,7 +101,28 @@ def dcm(vcffile, outdir, database):
             else:
                 lines.INFO['DCM'] = 'Tier3'
         vcfwriter.write_record(lines)
+    return(outpath)
 
+def write_vcf(arg):
+    vcffile = arg[0]
+    sample = arg[1]
+    outdir = arg[2]
+    vfhandle = vcf.Reader(filename=vcffile)
+    outpath = '{0}/{1}_dcm.vcf'.format(outdir, sample)
+    vcfwriter = vcf.Writer(open(outpath,'w'),vfhandle)
+    for lines in vfhandle:
+        call = lines.genotype(sample)
+        if call['GT'] == '1/1' or call['GT'] == '0/1' or call['GT'] == '1/2':
+            vcfwriter.write_record(lines)
+    return
+
+def split(vcffile, outdir):
+    vcfreader = vcf.Reader(filename=vcffile)
+    samples = vcfreader.samples
+    splitter = Pool(len(samples))
+    splitter.map(write_vcf, zip(repeat(vcffile), samples, repeat(outdir))) 
+    return
+ 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run mendelian filter')
     parser.add_argument('-v', type=str, dest='vcffile', help='Vcf file') 
@@ -114,5 +135,5 @@ if __name__ == '__main__':
     outfile = caseselect(args.vcffile, args.pattern, args.outdir, args.thresh)
     outfile = annovar(outfile, args.outdir)
     outfile = dcm(outfile, args.outdir, args.database)
- 
+    split(outfile, args.outdir) 
         
