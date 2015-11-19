@@ -116,6 +116,18 @@ def main():
         pool_dc = Pool(2)
         gvcf_list = pool_dc.map(dc.align, data)
        
+    elif pipeline == 'mendelian':
+        dc = SeqCohort()
+        output_record, file_record = dc.create_outdir()
+        data = [[val,file_record[val][0],file_record[val][1],
+            output_record[val]] for val in file_record]
+        outdir = output_record.values()
+        pool_dc = Pool(3) 
+        gvcf_list = pool_dc.map(dc.preprocess, data)
+        vcffile = dc.joint_genotyping(gvcf_list)
+        vcffile = dc.vqsr(vcffile)
+        vcffile = dc.mendelian(vcffile, outdir)
+
     return
 
 def configure(fwd,rev,outdir,threads,java,mem,reference,kmer,adap,window,
