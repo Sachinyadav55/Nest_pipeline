@@ -125,7 +125,8 @@ def configure(fwd,rev,outdir,threads,java,mem,reference,kmer,adap,window,
         rgpi,rgpg,rgpm,dup,dupscore,dupregex,duppix,maxint,minreads,mismatches,
         windows,model,lod,entropy,maxcon,maxmoves,greedy,maxreads,
         maxinmem,covariates,ics,maxcyc,mcs,bqsrpen,ddq,idq,calconf,
-        emitconf,gtmode,mmq,ann,applymode,filterlevel,exome,pipeline,erc):
+        emitconfi,gtmode,mmq,ann,applymode,filterlevel,exome,pipeline,erc,
+        pattern, thresh, database):
     
     #General config
     project = os.path.dirname(os.path.abspath(__file__))
@@ -214,12 +215,18 @@ def configure(fwd,rev,outdir,threads,java,mem,reference,kmer,adap,window,
         'ann': ann, 'applymode': applymode, 'filterlevel': filterlevel,
         'exome':exome, 'erc':erc}
 
+    if pipeline == 'mendelian':
+        patterm = ' '.join(pattern)
+        config['Mendelian'] = {'pattern': pattern, 'database': database,
+        'thresh' : thresh}
+
     #Write config file
     with open('config.cfg','w') as configfile:
         config.write(configfile)
     return(os.path.abspath(project+'/config.cfg'))
 
 if __name__ == '__main__' :
+    database = '{0}/mendelian/dcm_db.tsv'.format(os.path.abspath(__file__))
     nester = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     general = nester.add_argument_group('General')
@@ -387,6 +394,11 @@ if __name__ == '__main__' :
         help='VQSR apply mode')
     vqsr.add_argument('--filterlevel', type=str, default='99.0',
         help='Filter level')
+    mendel = nester.add_argument_group('Mendelian sample analysis parameters')
+    mendel.add_argument('--thresh', type=int,
+        default=1, help='Minimum number of cases which should contain the mutation',)
+    mendel.add_argument('--database', type=str,
+        default=database, help='Path to DCM database')
     args = nester.parse_args()
     if args.outdir == None:
         args.outdir = args.indir + 'Outputs'
@@ -401,6 +413,13 @@ if __name__ == '__main__' :
     input_files = glob.glob(os.path.abspath(args.indir+'*.fastq*'))
     if len(input_files) == 0:
         input_files = glob.glob(os.path.abspath(args.indir+'/*/*.fastq*'))
+    pattern = list()
+    if pipeline == 'mendelian':
+        for files in input_files:
+            if 'control' in files.lower():
+                pattern.append('-')
+            elif 'case' in files.lower():
+                pattern.append('+')
     input_dict = defaultdict(list)
     for lines in input_files:
         base = basename.split(fastq.split(os.path.basename(lines))[0])[0]
@@ -432,5 +451,5 @@ if __name__ == '__main__' :
             args.ics, args.maxcyc, args.mcs, args.bqsrgpen,args.ddq,
             args.idq, args.calconf, args.emitconf, args.gtmode, args.mmq, 
             args.ann, args.applymode, args.filterlevel, args.exome,
-            args.pipeline, args.erc)
+            args.pipeline, args.erc, pattern, args.thresh, args.database)
     main()
