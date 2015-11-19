@@ -24,6 +24,52 @@ stream.setFormatter(formats)
 logger.addHandler(stream)
 
 
+def allelebalance(sample, line):
+    call = line.genotype(sample)
+    if call.is_het:
+        ab = call['AD'][1] / sum(call['AD'])
+        return(1- abs(ab - 0.5), ab)
+    elif call['GT'] == '0/0':
+        try:
+            ab = call['AD'][0] / sum(call['AD'])
+        except ZeroDivisionError:
+            ab = 1
+        return(1 - abs(ab -1), ab)
+    elif call['GT'] == '1/1':
+        try:
+            ab = call['AD'][1] / sum(call['AD'])
+        except ZeroDivisionError:
+            ab = 1
+        return(1 - abs(ab - 1), ab)
+    elif call['GT'] == None:
+        return(1, 1)
+    else:
+        return(1, 1)
+
+def ranker(vcffile, outdir):
+    vcfreader = vcf.Reader(filename=vcffile)
+    outfile = vcf.Writer(open('{0}/case_variants.vcf'.format(outdir),'w'),
+        vcfreader)
+    samples = vcfreader.samples
+    for lines in vcfreader:
+        rank = 0
+        samples_rank = list()
+        allele = list()
+        for index, sample in enumerate(samples):
+            try:
+                ab = allelebalance(sample, lines)
+                dp = lines.genotype(sample)['DP']
+                sample_rank = (ab[0] * dp)  + rank
+            except (TypeError, KeyError, ZeroDivisionError):
+                sample_rank = rank
+            allele.append('{0:.1f}'.format(ab[1]))
+            samples_rank.append('{0:.1f}'.format(sample_rank))
+        lines.INFO['Rank'] = ','.join(samples_rank)
+        lines.INFO['AB'] = ','.join(allele)
+        outfile.write_record(lines)
+    return ('{0}/case_variants.vcf'.format(outdir))
+
+
 def caseselect(vcffile, casepattern, outdir, thresh):
     vcfreader = vcf.Reader(filename=vcffile)
     outfile = vcf.Writer(open('{0}/case_variants_mendelian.vcf'.format(outdir),'w'),
@@ -132,7 +178,8 @@ if __name__ == '__main__':
     parser.add_argument('-t', type=int, dest='thresh', help='Case threshold')
     parser.add_argument('-d', type=str, dest='database', help='Database file')
     args = parser.parse_args()
-    outfile = caseselect(args.vcffile, args.pattern, args.outdir, args.thresh)
+    outfile = ranker(args.vcffile, args.outdir)
+    outfile = caseselect(outfile, args.pattern, args.outdir, args.thresh)
     outfile = annovar(outfile, args.outdir)
     outfile = dcm(outfile, args.outdir, args.database)
     split(outfile, args.outdir) 
